@@ -58,7 +58,7 @@ class Enemy(GameObject):
 
         return True
 
-    def move_towards_player(self, player, grid, grid_width, grid_height, walls):
+    def move_towards_player(self, player, grid, grid_width, grid_height, walls, items):
         if not self.can_see_player(player, walls):
             return False
 
@@ -75,13 +75,22 @@ class Enemy(GameObject):
                     (grid[new_row][new_col] is None or
                      grid[new_row][new_col].type in ["item", "exit", "merchant", "chest"])):
 
+                if new_row == player.row and new_col == player.col:
+                    continue
+
                 distance = abs(new_row - player.row) + abs(new_col - player.col)
                 if distance < best_distance:
                     best_distance = distance
                     best_move = (new_row, new_col)
 
         if best_move:
-            grid[self.row][self.col] = None
+            item_at_old_pos = None
+            for item in items:
+                if item.row == self.row and item.col == self.col:
+                    item_at_old_pos = item
+                    break
+
+            grid[self.row][self.col] = item_at_old_pos
             self.row, self.col = best_move
             grid[self.row][self.col] = self
             return True

@@ -91,11 +91,11 @@ class GameCore:
                         enemy.attack(self.player)
                     else:
                         enemy.move_towards_player(self.player, self.grid,
-                                                  self.grid_width, self.grid_height, self.walls)
+                                                  self.grid_width, self.grid_height, self.walls, self.items)
                 else:
                     # Melee enemies move towards player
                     enemy.move_towards_player(self.player, self.grid,
-                                              self.grid_width, self.grid_height, self.walls)
+                                              self.grid_width, self.grid_height, self.walls, self.items)
 
         # Check collisions
         self.check_collisions()
@@ -115,7 +115,7 @@ class GameCore:
             if item.row == self.player.row and item.col == self.player.col:
                 self.player.collect_item(item)
                 self.items.remove(item)
-                self.grid[item.row][item.col] = None
+                # self.grid[item.row][item.col] = None
 
         # Check player-chest collisions
         for chest in self.chests:
