@@ -42,29 +42,46 @@ class Player(GameObject):
         if self.dash_cooldown > 0:
             return False
 
-        new_row, new_col = self.row, self.col
+        # Start tracking where we will end up (initially where we are now)
+        target_row, target_col = self.row, self.col
         distance = GameConfig.DASH_DISTANCE
 
         for _ in range(distance):
-            if direction == "up" and new_row > 0:
-                new_row -= 1
-            elif direction == "down" and new_row < grid_height - 1:
-                new_row += 1
-            elif direction == "left" and new_col > 0:
-                new_col -= 1
-            elif direction == "right" and new_col < grid_width - 1:
-                new_col += 1
-            else:
-                break
+            # 1. Calculate the coordinate we WANT to step into
+            check_row, check_col = target_row, target_col
 
-            # Stop if we hit a wall
-            if grid[new_row][new_col] and grid[new_row][new_col].type == "wall":
-                break
+            if direction == "up":
+                check_row -= 1
+            elif direction == "down":
+                check_row += 1
+            elif direction == "left":
+                check_col -= 1
+            elif direction == "right":
+                check_col += 1
 
-        if (new_row != self.row or new_col != self.col):
-            grid[self.row][self.col] = None
-            self.row, self.col = new_row, new_col
-            grid[new_row][new_col] = self
+            # 2. Check Boundaries
+            if not (0 <= check_row < grid_height and 0 <= check_col < grid_width):
+                break  # Hit edge of map
+
+            # 3. Check for Obstacles
+            cell_content = grid[check_row][check_col]
+
+            # If there is something there...
+            if cell_content is not None:
+                # ...and it is a solid object, STOP.
+                # Note: Items are 'walkable', so we don't stop for them.
+                if cell_content.type in ["wall", "enemy", "chest", "merchant"]:
+                    break
+
+                    # 4. If we made it here, the step is safe. Update our target.
+            target_row, target_col = check_row, check_col
+
+        # 5. Apply the move ONLY if the target is different from start
+        if target_row != self.row or target_col != self.col:
+            grid[self.row][self.col] = None  # Remove player from old spot
+            self.row, self.col = target_row, target_col  # Update coords
+            grid[self.row][self.col] = self  # Place player in new spot
+
             self.dash_cooldown = GameConfig.DASH_COOLDOWN
             return True
 

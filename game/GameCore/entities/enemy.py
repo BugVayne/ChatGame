@@ -64,33 +64,29 @@ class Enemy(GameObject):
 
         self.has_detected_player = True
 
-        # Simple pathfinding: try to reduce distance to player
+        # Pathfinding logic
         best_move = None
         best_distance = float('inf')
 
         for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             new_row, new_col = self.row + dr, self.col + dc
 
-            if (0 <= new_row < grid_height and 0 <= new_col < grid_width and
-                    (grid[new_row][new_col] is None or
-                     grid[new_row][new_col].type in ["item", "exit", "merchant", "chest"])):
 
-                if new_row == player.row and new_col == player.col:
-                    continue
+            if 0 <= new_row < grid_height and 0 <= new_col < grid_width:
 
-                distance = abs(new_row - player.row) + abs(new_col - player.col)
-                if distance < best_distance:
-                    best_distance = distance
-                    best_move = (new_row, new_col)
+                target_cell = grid[new_row][new_col]
+
+                if target_cell is None:
+                    # Calculating distance
+                    distance = abs(new_row - player.row) + abs(new_col - player.col)
+                    if distance < best_distance:
+                        best_distance = distance
+                        best_move = (new_row, new_col)
+                # --- FIX END ---
 
         if best_move:
-            item_at_old_pos = None
-            for item in items:
-                if item.row == self.row and item.col == self.col:
-                    item_at_old_pos = item
-                    break
-
-            grid[self.row][self.col] = item_at_old_pos
+            # Move the enemy
+            grid[self.row][self.col] = None
             self.row, self.col = best_move
             grid[self.row][self.col] = self
             return True

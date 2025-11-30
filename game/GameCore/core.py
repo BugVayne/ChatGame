@@ -1,6 +1,6 @@
 import pygame
 import random
-from game.GameCore.config import GameConfig
+from game.GameCore.config import GameConfig, GameState, UIStyle
 from game.GameCore.levels.level_manager import LevelManager
 
 
@@ -16,7 +16,18 @@ class GameCore:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Dungeon Escape")
 
-        # Game state
+        # Game Logic State
+        self.state = GameState.START
+
+        # Define Merchant Shop Items
+        self.shop_items = [
+            {"name": "Health Potion", "cost": 10, "action": "buy_potion", "key": "1"},
+            {"name": "Upgrade Sword", "cost": 50, "action": "upgrade_sword", "key": "2"},
+            {"name": "Upgrade Bow", "cost": 50, "action": "upgrade_bow", "key": "3"},
+            {"name": "Arrows (x5)", "cost": 15, "action": "buy_arrows", "key": "4"}
+        ]
+
+
         self.grid = None
         self.player = None
         self.walls = []
@@ -25,16 +36,22 @@ class GameCore:
         self.chests = []
         self.exit_portal = None
         self.merchant = None
-
-        # Game counters
         self.turn_count = 0
         self.game_completed = False
-
-        # UI
         self.font = pygame.font.Font(None, 36)
+        self.large_font = pygame.font.Font(None, 72)
         self.small_font = pygame.font.Font(None, 24)
+        self.btn_retry_rect = pygame.Rect(0, 0, 0, 0)
+        self.btn_menu_rect = pygame.Rect(0, 0, 0, 0)
 
         self.initialize_level()
+
+    def check_death(self):
+        """Checks if player died"""
+        if self.player.health <= 0:
+            self.state = GameState.GAME_OVER
+            print("Player Died")
+
 
     def initialize_level(self):
         level_data = self.level_manager.get_current_level()
@@ -61,19 +78,15 @@ class GameCore:
             self.place_entity(wall)
         for enemy in self.enemies:
             self.place_entity(enemy)
-        for item in self.items:
-            self.place_entity(item)
         for chest in self.chests:
             self.place_entity(chest)
-        if self.exit_portal:
-            self.place_entity(self.exit_portal)
-        if self.merchant:
-            self.place_entity(self.merchant)
 
     def place_entity(self, entity):
         self.grid[entity.row][entity.col] = entity
 
     def execute_turn(self):
+        if self.state != GameState.PLAYING:
+            return
         self.turn_count += 1
         self.player.update_cooldowns()
 
@@ -97,8 +110,13 @@ class GameCore:
                     enemy.move_towards_player(self.player, self.grid,
                                               self.grid_width, self.grid_height, self.walls, self.items)
 
+
         # Check collisions
         self.check_collisions()
+
+        self.check_death()
+        if self.state == GameState.GAME_OVER:
+            return
 
         # Check level completion
         self.check_level_completion()
@@ -138,29 +156,241 @@ class GameCore:
                 self.initialize_level()
             else:
                 self.game_completed = True
+                self.state = GameState.VICTORY
 
     def render(self):
+        """Decides which screen to draw based on state"""
+
+        # 1. Handle START Screen separately (it usually has a black background)
+        if self.state == GameState.START:
+            self.screen.fill((10, 10, 15))  # Clear screen for menu
+            self.draw_start_screen()
+
+        # 2. For all other states, Draw the Game World FIRST (Grid + Entities + HUD)
+        else:
+            self.draw_game_world()
+
+            # 3. Then Draw the specific UI Popup ON TOP
+            if self.state == GameState.MERCHANT:
+                self.draw_merchant_screen()
+            elif self.state == GameState.PAUSED:
+                self.draw_pause_screen()
+            elif self.state == GameState.GAME_OVER:
+                self.draw_game_over_screen()
+            elif self.state == GameState.VICTORY:
+                self.draw_victory_screen()
+            # If state is PLAYING, we already drew the world, so we are done.
+
+        pygame.display.flip()
+
+    def draw_end_screen(self, is_victory):
+        # Dark Overlay
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(200)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
+
+        # Title Text
+        if is_victory:
+            title_text = "VICTORY!"
+            title_color = (255, 215, 0)  # Gold
+            sub_text = "You have escaped the dungeon!"
+        else:
+            title_text = "GAME OVER"
+            title_color = (200, 50, 50)  # Red
+            sub_text = "The dungeon claimed another soul."
+
+        # Draw Title
+        title_surf = self.large_font.render(title_text, True, title_color)
+        title_rect = title_surf.get_rect(center=(self.screen_width // 2, self.screen_height // 3))
+        self.screen.blit(title_surf, title_rect)
+
+        sub_surf = self.small_font.render(sub_text, True, (200, 200, 200))
+        sub_rect = sub_surf.get_rect(center=(self.screen_width // 2, self.screen_height // 3 + 50))
+        self.screen.blit(sub_surf, sub_rect)
+
+        # --- DRAW BUTTONS ---
+        btn_width, btn_height = 220, 50
+        center_x = self.screen_width // 2
+
+        # Button 1: Try Again / Play Again
+        btn1_y = self.screen_height // 2 + 30
+        self.btn_retry_rect = pygame.Rect(center_x - btn_width // 2, btn1_y, btn_width, btn_height)
+
+        # Hover Effect 1
+        mouse_pos = pygame.mouse.get_pos()
+        color1 = (50, 150, 50) if self.btn_retry_rect.collidepoint(mouse_pos) else (30, 100, 30)
+
+        pygame.draw.rect(self.screen, color1, self.btn_retry_rect)
+        pygame.draw.rect(self.screen, (100, 200, 100), self.btn_retry_rect, 2)
+
+        btn1_label = "Play Again" if is_victory else "Try Again"
+        text1 = self.font.render(f"{btn1_label} (T)", True, (255, 255, 255))
+        text1_rect = text1.get_rect(center=self.btn_retry_rect.center)
+        self.screen.blit(text1, text1_rect)
+
+        # Button 2: Main Menu
+        btn2_y = btn1_y + 70
+        self.btn_menu_rect = pygame.Rect(center_x - btn_width // 2, btn2_y, btn_width, btn_height)
+
+        # Hover Effect 2
+        color2 = (150, 50, 50) if self.btn_menu_rect.collidepoint(mouse_pos) else (100, 30, 30)
+
+        pygame.draw.rect(self.screen, color2, self.btn_menu_rect)
+        pygame.draw.rect(self.screen, (200, 100, 100), self.btn_menu_rect, 2)
+
+        text2 = self.font.render("Main Menu (M)", True, (255, 255, 255))
+        text2_rect = text2.get_rect(center=self.btn_menu_rect.center)
+        self.screen.blit(text2, text2_rect)
+
+
+    def draw_game_world(self):
         self.screen.fill((30, 30, 50))
 
-        # Draw grid
+        # 1. Draw Grid Lines (Background)
         for row in range(self.grid_height):
             for col in range(self.grid_width):
                 x = col * self.cell_size
                 y = row * self.cell_size
-
                 color = GameConfig.COLORS['grid_light'] if (row + col) % 2 == 0 else GameConfig.COLORS['grid_dark']
                 pygame.draw.rect(self.screen, color, (x, y, self.cell_size, self.cell_size))
-                pygame.draw.rect(self.screen, GameConfig.COLORS['grid_border'],
-                                 (x, y, self.cell_size, self.cell_size), 1)
+                pygame.draw.rect(self.screen, GameConfig.COLORS['grid_border'], (x, y, self.cell_size, self.cell_size),
+                                 1)
 
-                # Draw objects
+        # --- FIX START ---
+        # 2. Draw Walkable Layers (Items, Exits, Merchant)
+        if self.exit_portal:
+            x, y = self.exit_portal.col * self.cell_size, self.exit_portal.row * self.cell_size
+            self.exit_portal.draw(self.screen, x, y, self.cell_size)
+
+        if self.merchant:
+            x, y = self.merchant.col * self.cell_size, self.merchant.row * self.cell_size
+            self.merchant.draw(self.screen, x, y, self.cell_size)
+
+        for item in self.items:
+            x, y = item.col * self.cell_size, item.row * self.cell_size
+            item.draw(self.screen, x, y, self.cell_size)
+        # --- FIX END ---
+
+        # 3. Draw Solid Layers (Walls, Enemies, Player, Chests) from Grid
+        for row in range(self.grid_height):
+            for col in range(self.grid_width):
                 obj = self.grid[row][col]
                 if obj:
+                    x = col * self.cell_size
+                    y = row * self.cell_size
                     obj.draw(self.screen, x, y, self.cell_size)
 
-        # Draw UI
         self.draw_ui()
-        pygame.display.flip()
+
+    def draw_start_screen(self):
+        self.draw_ui_window(
+            title="DUNGEON ESCAPE",
+            title_color=(200, 50, 50),
+            content_lines=[
+                "Welcome, brave adventurer.",
+                "",
+                "Navigate the grid, defeat enemies,",
+                "and find the exit portal."
+            ],
+            footer_text="Controls: WASD (Move) | SHIFT (Dash) | SPACE (Interact) | ENTER to Start"
+        )
+
+    def draw_pause_screen(self):
+        self.draw_ui_window(
+            title="GAME PAUSED",
+            title_color=(255, 255, 255),
+            content_lines=[
+                "Take a breath.",
+                "The dungeon will wait."
+            ],
+            footer_text="Press P or ESC to Resume | Q to Quit"
+        )
+
+    def draw_merchant_screen(self):
+        # Prepare content lines dynamically based on player coins
+        lines = []
+        lines.append(f"Your Gold: {self.player.coins}")
+        lines.append("")  # Spacer
+
+        for item in self.shop_items:
+            # Color logic: Green if affordable, Red if not
+            can_afford = self.player.coins >= item['cost']
+            color = (100, 255, 100) if can_afford else (200, 80, 80)
+
+            text = f"[{item['key']}] {item['name']} ... {item['cost']} G"
+            lines.append((text, color))  # Passing tuple for custom color
+
+        self.draw_ui_window(
+            title="MERCHANT SHOP",
+            title_color=(255, 215, 0),  # Gold
+            content_lines=lines,
+            footer_text="Press Number Keys to Buy | M or ESC to Leave"
+        )
+
+    def draw_game_over_screen(self):
+        # Define the buttons structure
+        buttons = [
+            {'text': "Try Again", 'key': 'T', 'rect': self.btn_retry_rect},
+            {'text': "Main Menu", 'key': 'M', 'rect': self.btn_menu_rect}
+        ]
+
+        self.draw_ui_window(
+            title="GAME OVER",
+            title_color=(200, 0, 0),
+            content_lines=[
+                "You have fallen in battle.",
+                f"Level Reached: {self.level_manager.current_level}",
+                f"Gold Collected: {self.player.coins}"
+            ],
+            buttons=buttons
+        )
+
+    def draw_victory_screen(self):
+        # Using same buttons, different text
+        buttons = [
+            {'text': "Play Again", 'key': 'T', 'rect': self.btn_retry_rect},
+            {'text': "Main Menu", 'key': 'M', 'rect': self.btn_menu_rect}
+        ]
+
+        self.draw_ui_window(
+            title="VICTORY!",
+            title_color=(0, 255, 100),
+            content_lines=[
+                "You have escaped the dungeon!",
+                "The surface sun feels warm.",
+                "",
+                f"Final Gold: {self.player.coins}"
+            ],
+            buttons=buttons
+        )
+
+
+
+    def buy_item(self, index):
+        if 0 <= index < len(self.shop_items):
+            item = self.shop_items[index]
+            if self.player.coins >= item['cost']:
+
+                # Apply purchase logic
+                if item['action'] == "buy_potion":
+                    self.player.inventory["health"] += 1
+                elif item['action'] == "buy_arrows":
+                    self.player.inventory["arrows"] += 5
+                elif item['action'] == "upgrade_sword":
+                    if self.player.sword_level < 3:
+                        self.player.sword_level += 1
+                    else:
+                        return False  # Maxed out
+                elif item['action'] == "upgrade_bow":
+                    if self.player.bow_level < 3:
+                        self.player.bow_level += 1
+                    else:
+                        return False  # Maxed out
+
+                self.player.coins -= item['cost']
+                return True
+        return False
 
     def draw_ui(self):
         # Player stats
@@ -335,3 +565,96 @@ class GameCore:
             "game_completed": self.game_completed,
             "grid_dimensions": (self.grid_width, self.grid_height)
         }
+
+    def draw_ui_window(self, title, content_lines, footer_text=None, title_color=(255, 255, 255), buttons=None):
+        """
+        Generic method to draw a consistent popup window.
+
+        Args:
+            title (str): Main header text.
+            content_lines (list): List of strings OR tuples (text, color) to display in the body.
+            footer_text (str): Optional instructional text at the bottom.
+            title_color (tuple): RGB color for the title.
+            buttons (list): Optional list of dicts [{'text': str, 'rect': pygame.Rect, 'key': str}]
+        """
+        # 1. Draw Semi-Transparent Overlay (dims the game behind)
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(180)
+        overlay.fill((0, 0, 0))
+        self.screen.blit(overlay, (0, 0))
+
+        # 2. Calculate Window Dimensions
+        window_width = self.screen_width * 0.7
+        window_height = self.screen_height * 0.7
+        window_x = (self.screen_width - window_width) // 2
+        window_y = (self.screen_height - window_height) // 2
+
+        window_rect = pygame.Rect(window_x, window_y, window_width, window_height)
+
+        # 3. Draw Main Box and Border
+        pygame.draw.rect(self.screen, UIStyle.BG_COLOR, window_rect)
+        pygame.draw.rect(self.screen, UIStyle.BORDER_COLOR, window_rect, UIStyle.BORDER_WIDTH)
+
+        # Inner decorative line
+        pygame.draw.rect(self.screen, (20, 20, 20), window_rect.inflate(-10, -10), 1)
+
+        # 4. Draw Title
+        title_surf = self.large_font.render(title, True, title_color)
+        title_rect = title_surf.get_rect(center=(self.screen_width // 2, window_y + UIStyle.PADDING + 20))
+        self.screen.blit(title_surf, title_rect)
+
+        # Draw separator line under title
+        pygame.draw.line(self.screen, UIStyle.BORDER_COLOR,
+                         (window_x + 50, title_rect.bottom + 10),
+                         (window_x + window_width - 50, title_rect.bottom + 10), 2)
+
+        # 5. Draw Body Content
+        start_y = title_rect.bottom + 40
+        line_height = 40
+
+        for i, line_data in enumerate(content_lines):
+            # Handle plain strings or (text, color) tuples
+            if isinstance(line_data, tuple):
+                text, color = line_data
+            else:
+                text = line_data
+                color = UIStyle.TEXT_COLOR
+
+            line_surf = self.font.render(text, True, color)
+            line_rect = line_surf.get_rect(center=(self.screen_width // 2, start_y + (i * line_height)))
+            self.screen.blit(line_surf, line_rect)
+
+        # 6. Draw Buttons (if any)
+        if buttons:
+            btn_start_y = window_y + window_height - UIStyle.PADDING - (len(buttons) * 60)
+            mouse_pos = pygame.mouse.get_pos()
+
+            for i, btn in enumerate(buttons):
+                # Update the Rect position in place so the Controller knows where it is
+                rect_width = 250
+                rect_height = 50
+                btn['rect'].x = (self.screen_width // 2) - (rect_width // 2)
+                btn['rect'].y = btn_start_y + (i * 60)
+                btn['rect'].width = rect_width
+                btn['rect'].height = rect_height
+
+                # Hover Effect
+                is_hovered = btn['rect'].collidepoint(mouse_pos)
+                bg_color = (60, 60, 60) if not is_hovered else (80, 80, 100)
+                border_col = UIStyle.BORDER_COLOR if not is_hovered else (255, 255, 255)
+
+                # Draw Button
+                pygame.draw.rect(self.screen, bg_color, btn['rect'])
+                pygame.draw.rect(self.screen, border_col, btn['rect'], 2)
+
+                # Button Text
+                btn_text = f"{btn['text']} ({btn['key']})"
+                text_surf = self.font.render(btn_text, True, (255, 255, 255))
+                text_rect = text_surf.get_rect(center=btn['rect'].center)
+                self.screen.blit(text_surf, text_rect)
+
+        # 7. Draw Footer (if no buttons, or below buttons)
+        if footer_text and not buttons:
+            footer_surf = self.small_font.render(footer_text, True, (150, 150, 150))
+            footer_rect = footer_surf.get_rect(center=(self.screen_width // 2, window_y + window_height - 30))
+            self.screen.blit(footer_surf, footer_rect)

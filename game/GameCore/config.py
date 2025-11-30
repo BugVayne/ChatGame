@@ -43,3 +43,20 @@ class GameConfig:
         'ui_text': (255, 255, 255),
         'ui_secondary': (200, 200, 200)
     }
+
+class GameState:
+    START = "start"
+    PLAYING = "playing"
+    PAUSED = "paused"
+    MERCHANT = "merchant"
+    GAME_OVER = "game_over"
+    VICTORY = "victory"
+
+class UIStyle:
+    BG_COLOR = (40, 35, 35)      # Dark Slate/Brown
+    BORDER_COLOR = (180, 160, 100) # Gold/Brass
+    TEXT_COLOR = (220, 220, 220) # Off-white
+    TITLE_FONT_SIZE = 60
+    BODY_FONT_SIZE = 30
+    BORDER_WIDTH = 4
+    PADDING = 40

@@ -1,6 +1,8 @@
 import pygame
 import threading
 
+from game.GameCore.config import GameState
+
 
 class GameController:
     def __init__(self, game_core, state_monitor, external_interface):
@@ -9,10 +11,8 @@ class GameController:
         self.external_interface = external_interface
         self.stream_thread = threading.Thread(target=start_stream_server, args=(self,), daemon=True)
         self.stream_thread.start()
-
         self.start_websocket_server()
 
-        # Turn-based timing
         self.turn_timer = 0
         self.turn_interval = 3000
 
@@ -25,52 +25,135 @@ class GameController:
         ws_thread.start()
 
     def run(self):
-        """Main game loop"""
         clock = pygame.time.Clock()
         running = True
 
         while running:
-            dt = clock.tick(60)  # Limit to 60 FPS
+            dt = clock.tick(60)
 
-            # Handle turn-based updates
-            self.turn_timer += dt
-            if self.turn_timer >= self.turn_interval:
-                self.turn_timer = 0
-                self.execute_game_turn()
+            # Handle Auto-Turn (Only when playing)
+            if self.game_core.state == GameState.PLAYING:
+                self.turn_timer += dt
+                if self.turn_timer >= self.turn_interval:
+                    self.turn_timer = 0
+                    self.execute_game_turn()
 
-            # Render the game (happens every frame for smoothness)
+            # Render
             self.game_core.render()
 
-            # Handle Pygame events
+            # Input
             running = self.handle_pygame_events()
 
         pygame.quit()
 
     def execute_game_turn(self):
-        """Execute one game turn and handle events"""
-        # Execute game turn
-        self.game_core.execute_turn()
+        if self.game_core.state != GameState.PLAYING:
+            return
 
-        # Monitor for state changes and generate events
+        self.game_core.execute_turn()
         events = self.state_monitor.check_events()
         for event in events:
-            # Broadcast events via WebSocket
             self.external_interface.broadcast_event(event)
 
+    def handle_retry_action(self):
+        """Handles logic for retrying based on state"""
+        if self.game_core.state == GameState.VICTORY:
+            # If we won, reset completely to Level 1
+            self.game_core.level_manager.reset_to_level(1)
+            self.game_core.initialize_level()
+        else:
+            # If we died, just restart the current level
+            self.game_core.initialize_level()
+
+        self.game_core.state = GameState.PLAYING
+
     def handle_pygame_events(self):
-        """Handle Pygame events including keyboard input for testing"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left Click
+                if self.game_core.state in [GameState.GAME_OVER, GameState.VICTORY]:
+                    mouse_pos = pygame.mouse.get_pos()
+
+                    # Check Retry Button
+                    if self.game_core.btn_retry_rect.collidepoint(mouse_pos):
+                        self.handle_retry_action()
+
+                    # Check Menu Button
+                    elif self.game_core.btn_menu_rect.collidepoint(mouse_pos):
+                        self.game_core.state = GameState.START
             elif event.type == pygame.KEYDOWN:
-                if not self.handle_keyboard_input(event):
-                    return False
+                # Global Reset
+                modifiers = pygame.key.get_mods()
+                if event.key == pygame.K_r and modifiers & pygame.KMOD_CTRL:
+                    self.game_core.initialize_level()
+                    self.game_core.state = GameState.START
+
+                # Route Input based on State
+                if self.game_core.state == GameState.START:
+                    if event.key == pygame.K_RETURN:
+                        self.game_core.state = GameState.PLAYING
+                    elif event.key == pygame.K_ESCAPE:
+                        return False
+
+                if self.game_core.state in [GameState.GAME_OVER, GameState.VICTORY]:
+                    if event.key == pygame.K_t:  # Try Again
+                        self.handle_retry_action()
+                    elif event.key == pygame.K_m:  # Main Menu
+                        self.game_core.state = GameState.START
+                    elif event.key == pygame.K_ESCAPE:  # Exit to menu
+                        self.game_core.state = GameState.START
+
+                elif self.game_core.state == GameState.PAUSED:
+                    if event.key in [pygame.K_p, pygame.K_ESCAPE]:
+                        self.game_core.state = GameState.PLAYING
+                    elif event.key == pygame.K_q:
+                        return False
+
+                elif self.game_core.state == GameState.MERCHANT:
+                    self.handle_merchant_input(event)
+
+                elif self.game_core.state == GameState.PLAYING:
+                    if not self.handle_keyboard_input(event):
+                        return False
+
         return True
+
+    def handle_merchant_input(self, event):
+        if event.key in [pygame.K_SPACE, pygame.K_m, pygame.K_ESCAPE]:
+            self.game_core.state = GameState.PLAYING
+            return
+
+        # Buy items with 1, 2, 3, 4
+        key_map = {pygame.K_1: 0, pygame.K_2: 1, pygame.K_3: 2, pygame.K_4: 3}
+        if event.key in key_map:
+            if self.game_core.buy_item(key_map[event.key]):
+                print("Item Purchased")
+            else:
+                print("Cannot buy item")
+
+    def is_near_merchant(self):
+        """Check if player is adjacent to merchant"""
+        if not self.game_core.merchant: return False
+        p = self.game_core.player
+        m = self.game_core.merchant
+        dist = abs(p.row - m.row) + abs(p.col - m.col)
+        return dist <= 1
 
     def handle_keyboard_input(self, event):
         """Handle keyboard input for testing"""
-        if event.key == pygame.K_ESCAPE:
-            return False
+
+        if event.key in [pygame.K_p, pygame.K_ESCAPE]:
+            self.game_core.state = GameState.PAUSED
+            return True
+
+            # Check for Merchant Interaction (M key near merchant)
+        if event.key == pygame.K_m:
+            if self.is_near_merchant():
+                self.game_core.state = GameState.MERCHANT
+                return True
+
 
         # Get modifier keys
         modifiers = pygame.key.get_mods()
