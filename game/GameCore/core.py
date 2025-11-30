@@ -1,6 +1,7 @@
 import pygame
 import random
 from game.GameCore.config import GameConfig, GameState, UIStyle
+from game.GameCore.entities.projectile import Projectile
 from game.GameCore.levels.level_manager import LevelManager
 
 
@@ -34,6 +35,7 @@ class GameCore:
         self.enemies = []
         self.items = []
         self.chests = []
+        self.projectiles = []
         self.exit_portal = None
         self.merchant = None
         self.turn_count = 0
@@ -64,7 +66,7 @@ class GameCore:
         self.screen_width = self.grid_width * self.cell_size
         self.screen_height = self.grid_height * self.cell_size
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-
+        self.projectiles = []
         # Create entities
         (self.player, self.walls, self.enemies, self.items,
          self.chests, self.exit_portal, self.merchant) = self.level_manager.create_level_entities(level_data)
@@ -84,12 +86,51 @@ class GameCore:
     def place_entity(self, entity):
         self.grid[entity.row][entity.col] = entity
 
+    def update_projectiles(self):
+        """Moves arrows and handles collisions"""
+        for proj in self.projectiles[:]:  # Iterate over copy to allow removal
+            if not proj.active:
+                self.projectiles.remove(proj)
+                continue
+
+            # Move the projectile
+            proj.move()
+
+            # 1. Check Bounds
+            if not (0 <= proj.row < self.grid_height and 0 <= proj.col < self.grid_width):
+                self.projectiles.remove(proj)
+                continue
+
+            # 2. Check Collision with Grid Objects (Walls, Enemies)
+            target_cell = self.grid[proj.row][proj.col]
+
+            if target_cell:
+                if target_cell.type == "wall":
+                    # Hit Wall - Destroy Arrow
+                    self.projectiles.remove(proj)
+
+                elif target_cell.type == "enemy":
+                    # Hit Enemy - Damage Enemy, Destroy Arrow
+                    enemy = target_cell
+                    enemy.take_damage(proj.damage)
+                    self.projectiles.remove(proj)
+
+                    # If enemy died, remove from grid
+                    if not enemy.is_alive():
+                        self.grid[enemy.row][enemy.col] = None
+                        if enemy in self.enemies:
+                            self.enemies.remove(enemy)
+
+                elif target_cell.type == "chest":
+                    # Hit Chest - Destroy Arrow
+                    self.projectiles.remove(proj)
+
     def execute_turn(self):
         if self.state != GameState.PLAYING:
             return
         self.turn_count += 1
         self.player.update_cooldowns()
-
+        self.update_projectiles()
         # Update enemy cooldowns
         for enemy in self.enemies:
             if hasattr(enemy, 'update_cooldowns'):
@@ -270,6 +311,11 @@ class GameCore:
         for item in self.items:
             x, y = item.col * self.cell_size, item.row * self.cell_size
             item.draw(self.screen, x, y, self.cell_size)
+
+        for proj in self.projectiles:
+            x = proj.col * self.cell_size
+            y = proj.row * self.cell_size
+            proj.draw(self.screen, x, y, self.cell_size)
         # --- FIX END ---
 
         # 3. Draw Solid Layers (Walls, Enemies, Player, Chests) from Grid
@@ -489,18 +535,58 @@ class GameCore:
                 result["status"] = "error"
                 result["message"] = "No enemies in range"
 
+
         elif action == "attack_bow":
-            direction = command.get("direction")
-            attack_result = self.player.attack_bow(direction, self.enemies, self.walls)
-            if attack_result:
-                result["attack_result"] = attack_result
-                if attack_result["type"] == "enemy" and not attack_result["enemy"].is_alive():
-                    self.grid[attack_result["enemy"].row][attack_result["enemy"].col] = None
-                    self.enemies.remove(attack_result["enemy"])
-                self.execute_turn()
+
+
+            if self.player.inventory.get("arrows", 0) > 0:
+
+                direction = command.get("direction")
+                damage = GameConfig.PLAYER_BASE_DAMAGE + self.player.bow_level * 3
+
+                # Calculate spawn position (1 tile in front of player)
+                spawn_r, spawn_c = self.player.row, self.player.col
+
+                if direction == "up":
+                    spawn_r -= 1
+
+                elif direction == "down":
+                    spawn_r += 1
+
+                elif direction == "left":
+                    spawn_c -= 1
+
+                elif direction == "right":
+                    spawn_c += 1
+
+                # Check if spawn point is valid
+                if 0 <= spawn_r < self.grid_height and 0 <= spawn_c < self.grid_width:
+
+                    self.player.inventory["arrows"] -= 1
+                    target_obj = self.grid[spawn_r][spawn_c]
+
+                    if target_obj and target_obj.type == "wall":
+                        pass
+
+                    elif target_obj and target_obj.type == "enemy":
+                        target_obj.take_damage(damage)
+                        if not target_obj.is_alive():
+                            self.grid[spawn_r][spawn_c] = None
+                            self.enemies.remove(target_obj)
+
+                    else:
+                        proj = Projectile(spawn_r, spawn_c, direction, damage)
+                        self.projectiles.append(proj)
+                    self.execute_turn()
+                    result["message"] = "Arrow shot"
+
+                else:
+                    result["status"] = "error"
+                    result["message"] = "Cannot shoot into void"
+
             else:
                 result["status"] = "error"
-                result["message"] = "No arrows or no target"
+                result["message"] = "No arrows"
 
         elif action == "use_item":
             item_type = command.get("item_type")
