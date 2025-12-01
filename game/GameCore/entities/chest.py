@@ -15,21 +15,14 @@ class Chest(GameObject):
             return self.contents
         return {}
 
-    def draw(self, screen, x, y, cell_size):
-        color = GameConfig.COLORS['chest']
-        if self.opened:
-            color = (150, 120, 90)  # Darker when opened
+    def draw(self, screen):
+        # Try to draw sprite
+        frames = self.resources.get_animation(self.animation_key)
 
-        # Chest body
-        pygame.draw.rect(screen, color,
-                         (x + 10, y + 15, cell_size - 20, cell_size - 25))
-
-        # Chest lid
-        lid_height = 10 if self.opened else 5
-        pygame.draw.rect(screen, (180, 150, 110),
-                         (x + 5, y + 10, cell_size - 10, lid_height))
-
-        # Lock
-        if not self.opened:
-            pygame.draw.circle(screen, (200, 200, 0),
-                               (x + cell_size // 2, y + 20), 5)
+        if frames:
+            super().draw(screen)
+        else:
+            # Fallback if no sprite loaded
+            x, y = self.visual_x, self.visual_y
+            color = (150, 120, 90) if self.opened else GameConfig.COLORS['chest']
+            pygame.draw.rect(screen, color, (x + 10, y + 15, self.cell_size - 20, self.cell_size - 25))

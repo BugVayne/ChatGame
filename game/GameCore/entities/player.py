@@ -199,13 +199,13 @@ class Player(GameObject):
         if self.dash_cooldown > 0:
             self.dash_cooldown -= 1
 
-    def draw(self, screen, x, y, cell_size):
-        center_x = x + cell_size // 2
-        center_y = y + cell_size // 2
-        radius = cell_size // 3
+    def draw(self, screen):
+        # 1. Draw the base sprite (Idle/Run animation)
+        super().draw(screen)
 
-        # Body
-        pygame.draw.circle(screen, GameConfig.COLORS['player'], (center_x, center_y), radius)
+        # 2. Draw Overlays (Equipment, Health) using visual coordinates
+        center_x = self.visual_x + self.cell_size // 2
+        center_y = self.visual_y + self.cell_size // 2
 
         # Equipment indicators
         if self.sword_level > 0:
@@ -214,6 +214,3 @@ class Player(GameObject):
         if self.bow_level > 0:
             pygame.draw.arc(screen, (139, 69, 19),
                             (center_x + 5, center_y - 15, 20, 20), 0, 3.14, 3)
-
-        # Health bar
-        self.draw_health_bar(screen, x, y, cell_size, self.health, self.max_health)

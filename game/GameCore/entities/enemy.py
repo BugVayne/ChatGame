@@ -93,21 +93,22 @@ class Enemy(GameObject):
 
         return False
 
-    def draw(self, screen, x, y, cell_size):
-        center_x = x + cell_size // 2
-        center_y = y + cell_size // 2
-        radius = cell_size // 3
+    def draw(self, screen):
+        # 1. Draw Sprite
+        super().draw(screen)
 
-        # Body color based on type
-        color = GameConfig.COLORS['ranged_enemy'] if self.enemy_type == "ranged" else GameConfig.COLORS['enemy']
-        pygame.draw.circle(screen, color, (center_x, center_y), radius)
+        center_x = self.visual_x + self.cell_size // 2
+        center_y = self.visual_y + self.cell_size // 2
+        radius = self.cell_size // 3
 
-        # Detection indicator
+        # 2. Draw Type Indicator (Overlay)
+        # Since sprites might look the same, we add a colored dot or ring to distinguish
+        if self.enemy_type == "ranged":
+            pygame.draw.circle(screen, GameConfig.COLORS['ranged_enemy'], (center_x, center_y - 10), 5)
+
+        # 3. Detection indicator
         if not self.has_detected_player:
             pygame.draw.circle(screen, (100, 100, 100), (center_x, center_y), radius, 2)
-
-        # Health bar
-        self.draw_health_bar(screen, x, y, cell_size, self.health, self.max_health)
 
 
 class RangedEnemy(Enemy):

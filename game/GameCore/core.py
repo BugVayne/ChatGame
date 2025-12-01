@@ -3,6 +3,7 @@ import random
 from game.GameCore.config import GameConfig, GameState, UIStyle
 from game.GameCore.entities.projectile import Projectile
 from game.GameCore.levels.level_manager import LevelManager
+from game.GameCore.resource_manager import ResourceManager
 
 
 class GameCore:
@@ -16,6 +17,8 @@ class GameCore:
 
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Dungeon Escape")
+
+        self.resource_manager = ResourceManager()
 
         # Game Logic State
         self.state = GameState.START
@@ -199,7 +202,7 @@ class GameCore:
                 self.game_completed = True
                 self.state = GameState.VICTORY
 
-    def render(self):
+    def render(self, dt=0):
         """Decides which screen to draw based on state"""
 
         # 1. Handle START Screen separately (it usually has a black background)
@@ -209,7 +212,7 @@ class GameCore:
 
         # 2. For all other states, Draw the Game World FIRST (Grid + Entities + HUD)
         else:
-            self.draw_game_world()
+            self.draw_game_world(dt)
 
             # 3. Then Draw the specific UI Popup ON TOP
             if self.state == GameState.MERCHANT:
@@ -284,48 +287,54 @@ class GameCore:
         text2_rect = text2.get_rect(center=self.btn_menu_rect.center)
         self.screen.blit(text2, text2_rect)
 
-
-    def draw_game_world(self):
+    def draw_game_world(self, dt=0):
         self.screen.fill((30, 30, 50))
 
-        # 1. Draw Grid Lines (Background)
-        for row in range(self.grid_height):
-            for col in range(self.grid_width):
-                x = col * self.cell_size
-                y = row * self.cell_size
-                color = GameConfig.COLORS['grid_light'] if (row + col) % 2 == 0 else GameConfig.COLORS['grid_dark']
-                pygame.draw.rect(self.screen, color, (x, y, self.cell_size, self.cell_size))
-                pygame.draw.rect(self.screen, GameConfig.COLORS['grid_border'], (x, y, self.cell_size, self.cell_size),
-                                 1)
+        # Draw Floor Tiles (Static)
+        floor_anim = self.resource_manager.get_animation("floor")
 
-        # --- FIX START ---
-        # 2. Draw Walkable Layers (Items, Exits, Merchant)
-        if self.exit_portal:
-            x, y = self.exit_portal.col * self.cell_size, self.exit_portal.row * self.cell_size
-            self.exit_portal.draw(self.screen, x, y, self.cell_size)
+        if floor_anim:
+            floor_img = floor_anim[0]
+            # Scale it once to match cell size
+            floor_img = pygame.transform.scale(floor_img, (self.cell_size, self.cell_size))
 
-        if self.merchant:
-            x, y = self.merchant.col * self.cell_size, self.merchant.row * self.cell_size
-            self.merchant.draw(self.screen, x, y, self.cell_size)
+            # Draw floor grid
+            for r in range(self.grid_height):
+                for c in range(self.grid_width):
+                    self.screen.blit(floor_img, (c * self.cell_size, r * self.cell_size))
+        else:
+            # Fallback if resource missing: Draw basic rectangles
+            for r in range(self.grid_height):
+                for c in range(self.grid_width):
+                    rect = (c * self.cell_size, r * self.cell_size, self.cell_size, self.cell_size)
+                    pygame.draw.rect(self.screen, (30, 30, 40), rect)
+                    pygame.draw.rect(self.screen, (40, 40, 50), rect, 1)
+        # --- UPDATE & DRAW ENTITIES ---
 
-        for item in self.items:
-            x, y = item.col * self.cell_size, item.row * self.cell_size
-            item.draw(self.screen, x, y, self.cell_size)
+        # Define all entities to draw
+        all_entities = []
 
+        # Walkable items
+        if self.exit_portal: all_entities.append(self.exit_portal)
+        if self.merchant: all_entities.append(self.merchant)
+        all_entities.extend(self.items)
+
+        # Solids
+        all_entities.extend(self.walls)
+        all_entities.extend(self.enemies)
+        all_entities.extend(self.chests)
+        all_entities.append(self.player)
+
+        # Draw them
+        for entity in all_entities:
+            # Make sure entity has the update_visuals method
+            if hasattr(entity, 'update_visuals'):
+                entity.update_visuals(dt)
+            entity.draw(self.screen)  # No args needed now
+
+        # Draw Projectiles (keep line drawing or make sprite)
         for proj in self.projectiles:
-            x = proj.col * self.cell_size
-            y = proj.row * self.cell_size
-            proj.draw(self.screen, x, y, self.cell_size)
-        # --- FIX END ---
-
-        # 3. Draw Solid Layers (Walls, Enemies, Player, Chests) from Grid
-        for row in range(self.grid_height):
-            for col in range(self.grid_width):
-                obj = self.grid[row][col]
-                if obj:
-                    x = col * self.cell_size
-                    y = row * self.cell_size
-                    obj.draw(self.screen, x, y, self.cell_size)
+            proj.draw(self.screen)
 
         self.draw_ui()
 

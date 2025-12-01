@@ -26,12 +26,12 @@ class Projectile(GameObject):
         self.row += self.dr
         self.col += self.dc
 
-    def draw(self, screen, x, y, cell_size):
-        center_x = x + cell_size // 2
-        center_y = y + cell_size // 2
+    def draw(self, screen):
 
-        # Color: Cyan/Light Blue for player arrows
-        color = (0, 255, 255)
+        center_x = self.visual_x + self.cell_size // 2
+        center_y = self.visual_y + self.cell_size // 2
+
+        color = (0, 255, 255)  # Cyan
 
         # Draw Arrow Shaft
         end_x = center_x + (self.dc * 15)
@@ -40,6 +40,4 @@ class Projectile(GameObject):
         start_y = center_y - (self.dr * 10)
 
         pygame.draw.line(screen, color, (start_x, start_y), (end_x, end_y), 3)
-
-        # Draw Arrow Head (Simple circle for visibility or small polygon)
         pygame.draw.circle(screen, color, (end_x, end_y), 4)

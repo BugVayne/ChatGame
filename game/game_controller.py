@@ -39,7 +39,7 @@ class GameController:
                     self.execute_game_turn()
 
             # Render
-            self.game_core.render()
+            self.game_core.render(dt)
 
             # Input
             running = self.handle_pygame_events()
@@ -281,7 +281,7 @@ class GameStreamHandler(BaseHTTPRequestHandler):
 
                     # Compress to JPEG with lower quality for speed
                     buf = io.BytesIO()
-                    img.save(buf, format='JPEG', quality=70, optimize=True)
+                    img.save(buf, format='JPEG', quality=20, optimize=True)
                     frame = buf.getvalue()
 
                     self.wfile.write(b'--frame\r\n')

@@ -1,6 +1,19 @@
+import os
+
+
 class GameConfig:
     # Grid settings
-    CELL_SIZE = 80
+    CELL_SIZE = 100
+
+    _CORE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # 2. Go up one level to the 'game' folder
+    #    Result: .../ChatGame/game
+    _GAME_DIR = os.path.dirname(_CORE_DIR)
+
+    # 3. Define the Assets folder path
+    #    Result: .../ChatGame/game/Assets
+    ASSETS_DIR = os.path.join(_GAME_DIR, "Assets")
 
     # Player settings
     PLAYER_MAX_HEALTH = 100
