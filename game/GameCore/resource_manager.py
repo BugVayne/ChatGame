@@ -56,17 +56,48 @@ class ResourceManager:
 
         shopkeeper_idle_anim = self.load_frames("shopkeeper_idle", 9) # unused
 
+        sword_img = [self.load_image("sword.png")]
+        bow_img = [self.load_image("bow.png")]
+        arrow_img = [self.load_image("arrow.png")]
+        chest_closed_img = [self.load_image("chest_closed.png")]
+
         chest_idle_anim = self.load_frames("chest_idle", 5) # unused
+        heal_potion_anim = self.load_frames("heal_potion_idle", 8) #unused
+        portal_anim = self.load_frames("portal_idle", 6)
 
         coin_anim = self.load_frames("coin_idle", 4)
 
-        self.sprites = {"player_idle": player_idle_anim,
-                        "player_run": player_run_anim,
-                        "enemy_idle": enemy_idle_anim,
-                        "enemy_run": enemy_run_anim,
-                        "floor": [self.load_image("floor.png")],
-                        "coin": coin_anim,
-                        "wall_idle": [self.load_image("wall.png")]}
+        self.sprites = {
+            # Player
+            "player_idle": player_idle_anim,
+            "player_run": player_run_anim,
+            "player_attack": player_sword_anim,
+            "player_bow": player_bow_anim,
+            "player_death": player_death_anim,
+            "player_hurt": player_hurt_anim,
+
+            # Enemy
+            "enemy_hurt": enemy_hurt_anim,
+            "enemy_idle": enemy_idle_anim,
+            "enemy_run": enemy_run_anim,
+            "enemy_death" : enemy_death_anim,
+
+            # NPC
+            "merchant_idle": shopkeeper_idle_anim,
+
+            # Objects
+            "chest_closed": chest_idle_anim,
+            "chest_open": chest_closed_img,
+            "portal_idle": portal_anim,
+            "wall_idle": [self.load_image("wall.png")],
+            "floor": [self.load_image("floor.png")],
+
+            "coin": coin_anim,
+            "health": heal_potion_anim,
+            "sword": sword_img,
+            "bow": bow_img,
+            "arrow": arrow_img
+        }
 
     def create_surface(self, color, width=64, height=64, circle=False):
         surf = pygame.Surface((width, height), pygame.SRCALPHA)

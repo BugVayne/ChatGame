@@ -7,13 +7,11 @@ class GameConfig:
 
     _CORE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    # 2. Go up one level to the 'game' folder
-    #    Result: .../ChatGame/game
     _GAME_DIR = os.path.dirname(_CORE_DIR)
 
-    # 3. Define the Assets folder path
-    #    Result: .../ChatGame/game/Assets
     ASSETS_DIR = os.path.join(_GAME_DIR, "Assets")
+
+    MOVE_DURATION = 350
 
     # Player settings
     PLAYER_MAX_HEALTH = 100
@@ -26,8 +24,8 @@ class GameConfig:
     ENEMY_DETECTION_RANGE = 5
 
     # Weapon settings
-    SWORD_RANGE = 3
-    BOW_RANGE = 5
+    SWORD_RANGE = 2
+    BOW_RANGE = 7
     SWORD_UPGRADE_COST = [10, 25, 50]  # Cost for each level
     BOW_UPGRADE_COST = [15, 30, 60]
     HEALTH_UPGRADE_COST = [20, 40]

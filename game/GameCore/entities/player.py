@@ -91,6 +91,13 @@ class Player(GameObject):
         if self.sword_level == 0:
             return []
 
+        if direction == "left":
+            self.facing_right = False
+        elif direction == "right":
+            self.facing_right = True
+
+        self.play_animation("player_attack", 400)
+
         damage = GameConfig.PLAYER_BASE_DAMAGE + self.sword_level * 5
         range_distance = GameConfig.SWORD_RANGE
         hit_enemies = []
@@ -102,7 +109,6 @@ class Player(GameObject):
             row_diff = abs(enemy.row - self.row)
             col_diff = abs(enemy.col - self.col)
 
-            # Check if enemy is in sword range and direction
             if direction == "up" and enemy.col == self.col and enemy.row < self.row and self.row - enemy.row <= range_distance:
                 hit_enemies.append(enemy)
             elif direction == "down" and enemy.col == self.col and enemy.row > self.row and enemy.row - self.row <= range_distance:
@@ -122,6 +128,13 @@ class Player(GameObject):
         if self.bow_level == 0 or self.inventory.get("arrows", 0) <= 0:
             return None
 
+        if direction == "left":
+            self.facing_right = False
+        elif direction == "right":
+            self.facing_right = True
+
+        self.play_animation("player_bow", 400)
+
         self.inventory["arrows"] -= 1
         damage = GameConfig.PLAYER_BASE_DAMAGE + self.bow_level * 3
         range_distance = GameConfig.BOW_RANGE
@@ -139,7 +152,6 @@ class Player(GameObject):
             elif direction == "right":
                 check_col = self.col + distance
 
-            # Check walls first (they block arrows)
             for wall in walls:
                 if wall.row == check_row and wall.col == check_col:
                     return {"type": "wall", "position": (check_row, check_col)}
@@ -200,17 +212,5 @@ class Player(GameObject):
             self.dash_cooldown -= 1
 
     def draw(self, screen):
-        # 1. Draw the base sprite (Idle/Run animation)
         super().draw(screen)
 
-        # 2. Draw Overlays (Equipment, Health) using visual coordinates
-        center_x = self.visual_x + self.cell_size // 2
-        center_y = self.visual_y + self.cell_size // 2
-
-        # Equipment indicators
-        if self.sword_level > 0:
-            pygame.draw.rect(screen, (200, 200, 200),
-                             (center_x - 15, center_y - 20, 5, 15))
-        if self.bow_level > 0:
-            pygame.draw.arc(screen, (139, 69, 19),
-                            (center_x + 5, center_y - 15, 20, 20), 0, 3.14, 3)

@@ -8,6 +8,7 @@ class Chest(GameObject):
         super().__init__(row, col, "chest")
         self.contents = contents  # {'coins': 5, 'health': 1, etc.}
         self.opened = False
+        self.animation_key = "chest_closed"
 
     def open(self):
         if not self.opened:
@@ -16,13 +17,5 @@ class Chest(GameObject):
         return {}
 
     def draw(self, screen):
-        # Try to draw sprite
-        frames = self.resources.get_animation(self.animation_key)
-
-        if frames:
-            super().draw(screen)
-        else:
-            # Fallback if no sprite loaded
-            x, y = self.visual_x, self.visual_y
-            color = (150, 120, 90) if self.opened else GameConfig.COLORS['chest']
-            pygame.draw.rect(screen, color, (x + 10, y + 15, self.cell_size - 20, self.cell_size - 25))
+        self.animation_key = "chest_closed"
+        super().draw(screen)
