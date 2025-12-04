@@ -82,6 +82,8 @@ class GameController:
 
                     # Check Menu Button
                     elif self.game_core.btn_menu_rect.collidepoint(mouse_pos):
+                        self.game_core.level_manager.reset_to_level(1)
+                        self.game_core.initialize_level()
                         self.game_core.state = GameState.START
             elif event.type == pygame.KEYDOWN:
                 # Global Reset
@@ -101,8 +103,12 @@ class GameController:
                     if event.key == pygame.K_t:  # Try Again
                         self.handle_retry_action()
                     elif event.key == pygame.K_m:  # Main Menu
+                        self.game_core.level_manager.reset_to_level(1)
+                        self.game_core.initialize_level()
                         self.game_core.state = GameState.START
                     elif event.key == pygame.K_ESCAPE:  # Exit to menu
+                        self.game_core.level_manager.reset_to_level(1)
+                        self.game_core.initialize_level()
                         self.game_core.state = GameState.START
 
                 elif self.game_core.state == GameState.PAUSED:
