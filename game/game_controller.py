@@ -129,8 +129,8 @@ class GameController:
             self.game_core.state = GameState.PLAYING
             return
 
-        # Buy items with 1, 2, 3, 4
-        key_map = {pygame.K_1: 0, pygame.K_2: 1, pygame.K_3: 2, pygame.K_4: 3}
+        # Buy items with 1, 2
+        key_map = {pygame.K_1: 0, pygame.K_2: 1}
         if event.key in key_map:
             if self.game_core.buy_item(key_map[event.key]):
                 print("Item Purchased")
@@ -204,8 +204,6 @@ class GameController:
                 pygame.K_SPACE: {"action": "use_item", "item_type": "health"},
 
                 # Upgrades
-                pygame.K_1: {"action": "upgrade", "upgrade_type": "sword"},
-                pygame.K_2: {"action": "upgrade", "upgrade_type": "bow"},
                 pygame.K_3: {"action": "upgrade", "upgrade_type": "health"},
 
                 # Game management

@@ -69,6 +69,7 @@ LEVELS = {
         "grid_width": 18,
         "grid_height": 12,
         "player_start": (1, 1),
+        "start_equipment": ["bow"],
         "walls": [
             # Elaborate wall structure
             *[(0, col) for col in range(18)],

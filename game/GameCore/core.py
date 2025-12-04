@@ -26,9 +26,7 @@ class GameCore:
         # Define Merchant Shop Items
         self.shop_items = [
             {"name": "Health Potion", "cost": 10, "action": "buy_potion", "key": "1"},
-            {"name": "Upgrade Sword", "cost": 50, "action": "upgrade_sword", "key": "2"},
-            {"name": "Upgrade Bow", "cost": 50, "action": "upgrade_bow", "key": "3"},
-            {"name": "Arrows (x5)", "cost": 15, "action": "buy_arrows", "key": "4"}
+            {"name": "Arrows (x5)", "cost": 15, "action": "buy_arrows", "key": "2"}
         ]
 
         self.grid = None
@@ -449,16 +447,6 @@ class GameCore:
                     self.player.inventory["health"] += 1
                 elif item['action'] == "buy_arrows":
                     self.player.inventory["arrows"] += 5
-                elif item['action'] == "upgrade_sword":
-                    if self.player.sword_level < 3:
-                        self.player.sword_level += 1
-                    else:
-                        return False  # Maxed out
-                elif item['action'] == "upgrade_bow":
-                    if self.player.bow_level < 3:
-                        self.player.bow_level += 1
-                    else:
-                        return False  # Maxed out
 
                 self.player.coins -= item['cost']
                 return True
@@ -475,9 +463,10 @@ class GameCore:
         self.screen.blit(coins_text, (10, 50))
 
         # Equipment
+        sword_status = "Equipped" if self.player.has_sword else "None"
+        bow_status = "Equipped" if self.player.has_bow else "None"
         equipment_text = self.small_font.render(
-            f"Sword: Lvl {self.player.sword_level} | Bow: Lvl {self.player.bow_level} | "
-            f"Arrows: {self.player.inventory['arrows']}",
+            f"Sword: {sword_status} | Bow: {bow_status} | Arrows: {self.player.inventory['arrows']}",
             True, GameConfig.COLORS['ui_secondary']
         )
         self.screen.blit(equipment_text, (10, 80))
@@ -548,7 +537,7 @@ class GameCore:
             hit_enemies = self.player.attack_sword(direction, self.enemies)
             if hit_enemies:
                 result["hit_enemies"] = [
-                    {"position": (e.row, e.col), "damage": GameConfig.PLAYER_BASE_DAMAGE + self.player.sword_level * 5}
+                    {"position": (e.row, e.col), "damage": GameConfig.PLAYER_BASE_DAMAGE}
                     for e in hit_enemies]
                 # Remove defeated enemies
                 for enemy in hit_enemies[:]:
@@ -562,11 +551,15 @@ class GameCore:
 
 
         elif action == "attack_bow":
+            if not self.player.has_bow:
+                result["status"] = "error"
+                result["message"] = "You don't have a bow"
+                return result
 
             if self.player.inventory.get("arrows", 0) > 0:
 
                 direction = command.get("direction")
-                damage = GameConfig.PLAYER_BASE_DAMAGE + self.player.bow_level * 3
+                damage = GameConfig.PLAYER_BASE_DAMAGE
 
                 # Calculate spawn position (1 tile in front of player)
                 spawn_r, spawn_c = self.player.row, self.player.col
@@ -622,19 +615,7 @@ class GameCore:
 
         elif action == "upgrade":
             upgrade_type = command.get("upgrade_type")
-            if upgrade_type == "sword":
-                if self.player.upgrade_sword():
-                    result["new_level"] = self.player.sword_level
-                else:
-                    result["status"] = "error"
-                    result["message"] = "Cannot upgrade sword"
-            elif upgrade_type == "bow":
-                if self.player.upgrade_bow():
-                    result["new_level"] = self.player.bow_level
-                else:
-                    result["status"] = "error"
-                    result["message"] = "Cannot upgrade bow"
-            elif upgrade_type == "health":
+            if upgrade_type == "health":
                 if self.player.upgrade_health():
                     result["new_max_health"] = self.player.max_health
                 else:
@@ -662,8 +643,8 @@ class GameCore:
                 "health": self.player.health,
                 "max_health": self.player.max_health,
                 "coins": self.player.coins,
-                "sword_level": self.player.sword_level,
-                "bow_level": self.player.bow_level,
+                "has_sword": self.player.has_sword,
+                "has_bow": self.player.has_bow,
                 "inventory": self.player.inventory.copy(),
                 "dash_cooldown": self.player.dash_cooldown
             },

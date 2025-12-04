@@ -37,6 +37,13 @@ class LevelManager:
         player_data = level_data["player_start"]
         player = Player(player_data[0], player_data[1])
 
+        # Apply starting equipment
+        start_equip = level_data.get("start_equipment", [])
+        if "bow" in start_equip:
+            player.has_bow = True
+        if "sword" in start_equip:
+            player.has_sword = True
+
         # Create walls
         walls = []
         for wall_pos in level_data.get("walls", []):

@@ -9,8 +9,8 @@ class Player(GameObject):
         self.health = GameConfig.PLAYER_START_HEALTH
         self.max_health = GameConfig.PLAYER_MAX_HEALTH
         self.coins = 0
-        self.sword_level = 0
-        self.bow_level = 0
+        self.has_sword = False
+        self.has_bow = False
         self.dash_cooldown = 0
         self.inventory = {"health": 2, "arrows": 5}
 
@@ -88,7 +88,7 @@ class Player(GameObject):
         return False
 
     def attack_sword(self, direction, enemies):
-        if self.sword_level == 0:
+        if not self.has_sword:
             return []
 
         if direction == "left":
@@ -98,7 +98,7 @@ class Player(GameObject):
 
         self.play_animation("player_attack", 400)
 
-        damage = GameConfig.PLAYER_BASE_DAMAGE + self.sword_level * 5
+        damage = GameConfig.PLAYER_BASE_DAMAGE
         range_distance = GameConfig.SWORD_RANGE
         hit_enemies = []
 
@@ -125,7 +125,7 @@ class Player(GameObject):
         return hit_enemies
 
     def attack_bow(self, direction, enemies, walls):
-        if self.bow_level == 0 or self.inventory.get("arrows", 0) <= 0:
+        if not self.has_bow or self.inventory.get("arrows", 0) <= 0:
             return None
 
         if direction == "left":
@@ -136,7 +136,7 @@ class Player(GameObject):
         self.play_animation("player_bow", 400)
 
         self.inventory["arrows"] -= 1
-        damage = GameConfig.PLAYER_BASE_DAMAGE + self.bow_level * 3
+        damage = GameConfig.PLAYER_BASE_DAMAGE
         range_distance = GameConfig.BOW_RANGE
 
         # Find first enemy or wall in line of fire
@@ -171,10 +171,10 @@ class Player(GameObject):
             self.inventory["health"] += 1
         elif item.item_type == "arrow":
             self.inventory["arrows"] += item.value
-        elif item.item_type == "sword" and self.sword_level == 0:
-            self.sword_level = 1
-        elif item.item_type == "bow" and self.bow_level == 0:
-            self.bow_level = 1
+        elif item.item_type == "sword":
+            self.has_sword = True
+        elif item.item_type == "bow":
+            self.has_bow = True
 
     def use_item(self, item_type):
         if self.inventory.get(item_type, 0) > 0:
@@ -182,20 +182,6 @@ class Player(GameObject):
             if item_type == "health":
                 self.health = min(self.max_health, self.health + GameConfig.HEALTH_POTION_HEAL)
                 return True
-        return False
-
-    def upgrade_sword(self):
-        if self.sword_level < 3 and self.coins >= GameConfig.SWORD_UPGRADE_COST[self.sword_level]:
-            self.coins -= GameConfig.SWORD_UPGRADE_COST[self.sword_level]
-            self.sword_level += 1
-            return True
-        return False
-
-    def upgrade_bow(self):
-        if self.bow_level < 3 and self.coins >= GameConfig.BOW_UPGRADE_COST[self.bow_level]:
-            self.coins -= GameConfig.BOW_UPGRADE_COST[self.bow_level]
-            self.bow_level += 1
-            return True
         return False
 
     def upgrade_health(self):

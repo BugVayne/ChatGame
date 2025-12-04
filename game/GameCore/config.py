@@ -26,8 +26,6 @@ class GameConfig:
     # Weapon settings
     SWORD_RANGE = 2
     BOW_RANGE = 7
-    SWORD_UPGRADE_COST = [10, 25, 50]  # Cost for each level
-    BOW_UPGRADE_COST = [15, 30, 60]
     HEALTH_UPGRADE_COST = [20, 40]
 
     # Item effects
