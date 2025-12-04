@@ -60,6 +60,7 @@ class GameState:
     PLAYING = "playing"
     PAUSED = "paused"
     MERCHANT = "merchant"
+    CHEST_POPUP = "chest_popup"
     GAME_OVER = "game_over"
     VICTORY = "victory"
 

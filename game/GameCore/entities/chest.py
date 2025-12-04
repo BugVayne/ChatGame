@@ -17,5 +17,8 @@ class Chest(GameObject):
         return {}
 
     def draw(self, screen):
-        self.animation_key = "chest_closed"
+        if self.opened:
+            self.animation_key = "chest_open"
+        else:
+            self.animation_key = "chest_closed"
         super().draw(screen)

@@ -114,6 +114,10 @@ class GameController:
                 elif self.game_core.state == GameState.MERCHANT:
                     self.handle_merchant_input(event)
 
+                elif self.game_core.state == GameState.CHEST_POPUP:
+                    if event.key in [pygame.K_SPACE, pygame.K_RETURN, pygame.K_ESCAPE]:
+                        self.game_core.state = GameState.PLAYING
+
                 elif self.game_core.state == GameState.PLAYING:
                     if not self.handle_keyboard_input(event):
                         return False

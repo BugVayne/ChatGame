@@ -31,7 +31,6 @@ class GameCore:
             {"name": "Arrows (x5)", "cost": 15, "action": "buy_arrows", "key": "4"}
         ]
 
-
         self.grid = None
         self.player = None
         self.walls = []
@@ -56,7 +55,6 @@ class GameCore:
         if self.player.health <= 0:
             self.state = GameState.GAME_OVER
             print("Player Died")
-
 
     def initialize_level(self):
         level_data = self.level_manager.get_current_level()
@@ -155,7 +153,6 @@ class GameCore:
                     enemy.move_towards_player(self.player, self.grid,
                                               self.grid_width, self.grid_height, self.walls, self.items)
 
-
         # Check collisions
         self.check_collisions()
 
@@ -184,13 +181,24 @@ class GameCore:
         for chest in self.chests:
             if not chest.opened and chest.row == self.player.row and chest.col == self.player.col:
                 contents = chest.open()
+
+                # Prepare popup content
+                self.loot_lines = ["You found:"]
+
                 for item_type, amount in contents.items():
+                    # Add to player inventory
                     if item_type == "coins":
                         self.player.coins += amount
+                        self.loot_lines.append(f"+ {amount} Gold")
                     elif item_type == "health":
                         self.player.inventory["health"] += amount
+                        self.loot_lines.append(f"+ {amount} Potion")
                     elif item_type == "arrows":
                         self.player.inventory["arrows"] += amount
+                        self.loot_lines.append(f"+ {amount} Arrows")
+
+                # Switch state to popup
+                self.state = GameState.CHEST_POPUP
 
     def check_level_completion(self):
         level_data = self.level_manager.get_current_level()
@@ -224,6 +232,8 @@ class GameCore:
                 self.draw_game_over_screen()
             elif self.state == GameState.VICTORY:
                 self.draw_victory_screen()
+            elif self.state == GameState.CHEST_POPUP:
+                self.draw_chest_popup()
             # If state is PLAYING, we already drew the world, so we are done.
 
         pygame.display.flip()
@@ -421,7 +431,13 @@ class GameCore:
             buttons=buttons
         )
 
-
+    def draw_chest_popup(self):
+        self.draw_ui_window(
+            title="CHEST OPENED",
+            title_color=(255, 215, 0),  # Gold
+            content_lines=getattr(self, 'loot_lines', ["Empty"]),
+            footer_text="Press SPACE or ENTER to Continue"
+        )
 
     def buy_item(self, index):
         if 0 <= index < len(self.shop_items):
@@ -546,7 +562,6 @@ class GameCore:
 
 
         elif action == "attack_bow":
-
 
             if self.player.inventory.get("arrows", 0) > 0:
 
