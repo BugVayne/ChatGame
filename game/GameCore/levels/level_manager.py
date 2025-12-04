@@ -82,16 +82,10 @@ class LevelManager:
         return player, walls, enemies, items, chests, exit_portal, merchant
 
     def is_level_complete(self, player, enemies, exit_portal, level_data):
-        condition = level_data.get("completion_condition", "defeat_enemies")
-
-        if condition == "defeat_enemies":
-            # Check if all enemies are defeated
-            return all(not enemy.is_alive() for enemy in enemies)
-        elif condition == "find_exit":
-            # Check if player reached exit
-            return (exit_portal and
-                    player.row == exit_portal.row and
-                    player.col == exit_portal.col)
+        # The level is complete ONLY if the player stands on the exit portal
+        # The state of enemies does not matter
+        if exit_portal and player.row == exit_portal.row and player.col == exit_portal.col:
+            return True
 
         return False
 

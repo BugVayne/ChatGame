@@ -489,9 +489,8 @@ class GameCore:
         self.screen.blit(level_text, (10, 170))
 
         # Completion condition
-        condition = level_data.get("completion_condition", "defeat_enemies")
         condition_text = self.small_font.render(
-            f"Goal: {'Defeat all enemies' if condition == 'defeat_enemies' else 'Find the exit'}",
+            "Goal: Find and Enter the Portal",
             True, (200, 200, 0)
         )
         self.screen.blit(condition_text, (10, 200))
