@@ -76,6 +76,7 @@ class GameCore:
 
         # Reset counters
         self.turn_count = 0
+        self.game_completed = False
 
         # Place entities on grid
         self.place_entity(self.player)
