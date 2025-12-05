@@ -62,9 +62,16 @@ class GameCore:
         self.grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
 
         # Update screen size
-        self.screen_width = self.grid_width * self.cell_size
-        self.screen_height = self.grid_height * self.cell_size
-        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        target_width = self.grid_width * self.cell_size
+        target_height = self.grid_height * self.cell_size
+
+        # Only recreate window if size changed or it doesn't exist
+        # This prevents GL Context crashes in threading
+        if self.screen is None or self.screen.get_width() != target_width or self.screen.get_height() != target_height:
+            self.screen_width = target_width
+            self.screen_height = target_height
+            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+
         self.projectiles = []
         # Create entities
         (self.player, self.walls, self.enemies, self.items,

@@ -13,7 +13,7 @@ class ExternalInterface:
         self.event_loop = None
         self.websocket_server = None
 
-    async def handle_websocket(self, websocket, path):
+    async def handle_websocket(self, websocket):
         """Handle incoming WebSocket connections"""
         self.connections.add(websocket)
         try:
