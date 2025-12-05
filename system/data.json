@@ -1,0 +1,137 @@
+{
+    "greeting": {
+        "none": [
+            {"phrase": "привет", "entity": ""},
+            {"phrase": "здравствуй", "entity": ""},
+            {"phrase": "хай", "entity": ""},
+            {"phrase": "добрый день", "entity": ""},
+            {"phrase": "начать", "entity": ""},
+            {"phrase": "старт", "entity": ""}
+        ]
+    },
+    "movement": {
+        "up": [
+            {"phrase": "иди вверх", "entity": "вверх"},
+            {"phrase": "вверх", "entity": "вверх"},
+            {"phrase": "поди наверх", "entity": "вверх"},
+            {"phrase": "двигайся выше", "entity": "вверх"},
+            {"phrase": "шаг вверх", "entity": "вверх"},
+            {"phrase": "поднимись", "entity": "вверх"}
+        ],
+        "down": [
+            {"phrase": "иди вниз", "entity": "вниз"},
+            {"phrase": "вниз", "entity": "вниз"},
+            {"phrase": "спустись", "entity": "вниз"},
+            {"phrase": "шаг вниз", "entity": "вниз"},
+            {"phrase": "двигайся ниже", "entity": "вниз"},
+            {"phrase": "поди вниз", "entity": "вниз"}
+        ],
+        "left": [
+            {"phrase": "иди влево", "entity": "влево"},
+            {"phrase": "влево", "entity": "влево"},
+            {"phrase": "налево", "entity": "влево"},
+            {"phrase": "шаг влево", "entity": "влево"},
+            {"phrase": "двигайся влево", "entity": "влево"},
+            {"phrase": "поверни налево", "entity": "влево"}
+        ],
+        "right": [
+            {"phrase": "иди вправо", "entity": "вправо"},
+            {"phrase": "вправо", "entity": "вправо"},
+            {"phrase": "направо", "entity": "вправо"},
+            {"phrase": "шаг вправо", "entity": "вправо"},
+            {"phrase": "двигайся вправо", "entity": "вправо"},
+            {"phrase": "поверни направо", "entity": "вправо"}
+        ]
+    },
+    "attack": {
+        "up": [
+            {"phrase": "атака вверх", "entity": "вверх"},
+            {"phrase": "бей вверх", "entity": "вверх"},
+            {"phrase": "ударить наверх", "entity": "вверх"},
+            {"phrase": "меч вверх", "entity": "вверх"},
+            {"phrase": "руби вверх", "entity": "вверх"}
+        ],
+        "down": [
+            {"phrase": "атака вниз", "entity": "вниз"},
+            {"phrase": "бей вниз", "entity": "вниз"},
+            {"phrase": "ударить вниз", "entity": "вниз"},
+            {"phrase": "меч вниз", "entity": "вниз"},
+            {"phrase": "руби снизу", "entity": "вниз"}
+        ],
+        "left": [
+            {"phrase": "атака влево", "entity": "влево"},
+            {"phrase": "бей влево", "entity": "влево"},
+            {"phrase": "ударить налево", "entity": "влево"},
+            {"phrase": "меч влево", "entity": "влево"},
+            {"phrase": "руби слева", "entity": "влево"}
+        ],
+        "right": [
+            {"phrase": "атака вправо", "entity": "вправо"},
+            {"phrase": "бей вправо", "entity": "вправо"},
+            {"phrase": "ударить направо", "entity": "вправо"},
+            {"phrase": "меч вправо", "entity": "вправо"},
+            {"phrase": "руби справа", "entity": "вправо"}
+        ]
+    },
+    "shoot": {
+        "up": [
+            {"phrase": "выстрел вверх", "entity": "вверх"},
+            {"phrase": "стреляй вверх", "entity": "вверх"},
+            {"phrase": "лук вверх", "entity": "вверх"}
+        ],
+        "down": [
+            {"phrase": "выстрел вниз", "entity": "вниз"},
+            {"phrase": "стреляй вниз", "entity": "вниз"},
+            {"phrase": "лук вниз", "entity": "вниз"}
+        ],
+        "left": [
+            {"phrase": "выстрел влево", "entity": "влево"},
+            {"phrase": "стреляй влево", "entity": "влево"},
+            {"phrase": "лук влево", "entity": "влево"}
+        ],
+        "right": [
+            {"phrase": "выстрел вправо", "entity": "вправо"},
+            {"phrase": "стреляй вправо", "entity": "вправо"},
+            {"phrase": "лук вправо", "entity": "вправо"}
+        ]
+    },
+    "dash": {
+        "up": [
+            {"phrase": "рывок вверх", "entity": "вверх"},
+            {"phrase": "прыжок вверх", "entity": "вверх"},
+            {"phrase": "дэш вверх", "entity": "вверх"}
+        ],
+        "down": [
+            {"phrase": "рывок вниз", "entity": "вниз"},
+            {"phrase": "прыжок вниз", "entity": "вниз"},
+            {"phrase": "дэш вниз", "entity": "вниз"}
+        ],
+        "left": [
+            {"phrase": "рывок влево", "entity": "влево"},
+            {"phrase": "прыжок влево", "entity": "влево"},
+            {"phrase": "дэш влево", "entity": "влево"}
+        ],
+        "right": [
+            {"phrase": "рывок вправо", "entity": "вправо"},
+            {"phrase": "прыжок вправо", "entity": "вправо"},
+            {"phrase": "дэш вправо", "entity": "вправо"}
+        ]
+    },
+    "heal": {
+        "none": [
+            {"phrase": "лечиться", "entity": ""},
+            {"phrase": "выпить зелье", "entity": ""},
+            {"phrase": "зелье", "entity": ""},
+            {"phrase": "хил", "entity": ""},
+            {"phrase": "пополнить здоровье", "entity": ""}
+        ]
+    },
+    "reset": {
+        "none": [
+            {"phrase": "заново", "entity": ""},
+            {"phrase": "рестарт", "entity": ""},
+            {"phrase": "сброс", "entity": ""},
+            {"phrase": "перезапуск", "entity": ""}
+        ]
+    }
+}
