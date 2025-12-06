@@ -1,5 +1,4 @@
 import pygame
-import random
 from game.GameCore.config import GameConfig, GameState, UIStyle
 from game.GameCore.entities.projectile import Projectile
 from game.GameCore.levels.level_manager import LevelManager

@@ -1,7 +1,4 @@
-import pygame
-
 from game.GameCore.entities.game_object import GameObject
-from game.GameCore.config import GameConfig
 
 
 class Wall(GameObject):

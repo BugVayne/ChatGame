@@ -1,7 +1,6 @@
 import asyncio
 import websockets
 import json
-import threading
 from typing import Set, Dict, Any
 
 
