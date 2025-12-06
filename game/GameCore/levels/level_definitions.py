@@ -11,25 +11,29 @@ LEVELS = {
             *[(row, 0) for row in range(8)],
             *[(row, 11) for row in range(8)],
             # Internal walls
-            (2, 3), (2, 4), (2, 5), (3, 5), (4, 5), (5, 5),
-            (5, 3), (5, 4), (6, 3)
+            (2, 3),
+            (2, 4),
+            (2, 5),
+            (3, 5),
+            (4, 5),
+            (5, 5),
+            (5, 3),
+            (5, 4),
+            (6, 3),
         ],
         "enemies": [
             {"type": "melee", "position": (3, 3)},
-            {"type": "melee", "position": (6, 6)}
+            {"type": "melee", "position": (6, 6)},
         ],
         "items": [
             {"type": "health", "position": (1, 3)},
             {"type": "coin", "position": (2, 2), "value": 5},
-            {"type": "sword", "position": (4, 4)}
+            {"type": "sword", "position": (4, 4)},
         ],
-        "chests": [
-            {"position": (6, 8), "contents": {"coins": 10, "health": 2}}
-        ],
+        "chests": [{"position": (6, 8), "contents": {"coins": 10, "health": 2}}],
         "exit": (6, 10),
-        "completion_condition": "defeat_enemies"  # or "find_exit"
+        "completion_condition": "defeat_enemies",  # or "find_exit"
     },
-
     2: {
         "name": "Archer's Corridor",
         "grid_width": 15,
@@ -42,28 +46,39 @@ LEVELS = {
             *[(row, 0) for row in range(10)],
             *[(row, 14) for row in range(10)],
             # Maze-like walls
-            (2, 2), (2, 3), (2, 4), (3, 4), (4, 4), (4, 3), (4, 2),
-            (6, 6), (6, 7), (6, 8), (7, 6), (8, 6),
-            (5, 10), (5, 11), (5, 12), (6, 12), (7, 12)
+            (2, 2),
+            (2, 3),
+            (2, 4),
+            (3, 4),
+            (4, 4),
+            (4, 3),
+            (4, 2),
+            (6, 6),
+            (6, 7),
+            (6, 8),
+            (7, 6),
+            (8, 6),
+            (5, 10),
+            (5, 11),
+            (5, 12),
+            (6, 12),
+            (7, 12),
         ],
         "enemies": [
             {"type": "melee", "position": (7, 7)},
             {"type": "ranged", "position": (3, 8)},
-            {"type": "ranged", "position": (8, 3)}
+            {"type": "ranged", "position": (8, 3)},
         ],
         "items": [
             {"type": "bow", "position": (2, 7)},
             {"type": "arrow", "position": (3, 7), "value": 5},
             {"type": "coin", "position": (7, 8), "value": 8},
-            {"type": "health", "position": (8, 8)}
+            {"type": "health", "position": (8, 8)},
         ],
-        "chests": [
-            {"position": (1, 13), "contents": {"coins": 15, "arrows": 10}}
-        ],
+        "chests": [{"position": (1, 13), "contents": {"coins": 15, "arrows": 10}}],
         "exit": (8, 13),
-        "completion_condition": "defeat_enemies"
+        "completion_condition": "defeat_enemies",
     },
-
     3: {
         "name": "Merchant's Hall",
         "grid_width": 18,
@@ -79,7 +94,7 @@ LEVELS = {
             # Room divisions
             *[(5, col) for col in range(2, 16)],
             *[(row, 8) for row in range(1, 5)],
-            *[(row, 12) for row in range(1, 5)]
+            *[(row, 12) for row in range(1, 5)],
         ],
         "enemies": [
             {"type": "melee", "position": (2, 4)},
@@ -87,20 +102,20 @@ LEVELS = {
             {"type": "ranged", "position": (3, 14)},
             {"type": "melee", "position": (7, 5)},
             {"type": "ranged", "position": (7, 12)},
-            {"type": "melee", "position": (10, 9)}
+            {"type": "melee", "position": (10, 9)},
         ],
         "items": [
             {"type": "coin", "position": (2, 2), "value": 10},
             {"type": "coin", "position": (2, 15), "value": 10},
             {"type": "health", "position": (6, 10)},
-            {"type": "arrow", "position": (8, 4), "value": 8}
+            {"type": "arrow", "position": (8, 4), "value": 8},
         ],
         "chests": [
             {"position": (10, 15), "contents": {"coins": 25, "health": 3}},
-            {"position": (10, 2), "contents": {"coins": 20, "arrows": 15}}
+            {"position": (10, 2), "contents": {"coins": 20, "arrows": 15}},
         ],
         "merchant": (6, 14),
         "exit": (10, 8),
-        "completion_condition": "find_exit"
-    }
+        "completion_condition": "find_exit",
+    },
 }

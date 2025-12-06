@@ -1,4 +1,5 @@
 import pygame
+
 from game.GameCore.entities.game_object import GameObject
 
 
@@ -8,7 +9,6 @@ class Projectile(GameObject):
         self.direction = direction
         self.damage = damage
         self.active = True
-
 
         self.dr = 0
         self.dc = 0

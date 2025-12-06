@@ -13,7 +13,9 @@ class GameController:
         self.latest_frame_bytes = None
         self.frame_lock = threading.Lock()
 
-        self.stream_thread = threading.Thread(target=start_stream_server, args=(self,), daemon=True)
+        self.stream_thread = threading.Thread(
+            target=start_stream_server, args=(self,), daemon=True
+        )
         self.stream_thread.start()
         self.start_websocket_server()
 
@@ -27,8 +29,7 @@ class GameController:
     def start_websocket_server(self):
         """Start WebSocket server in a separate thread"""
         ws_thread = threading.Thread(
-            target=self.external_interface.start_websocket_server,
-            daemon=True
+            target=self.external_interface.start_websocket_server, daemon=True
         )
         ws_thread.start()
 
@@ -60,7 +61,7 @@ class GameController:
 
                     img = Image.fromarray(pixel_array)
                     buf = io.BytesIO()
-                    img.save(buf, format='JPEG', quality=30)
+                    img.save(buf, format="JPEG", quality=30)
 
                     with self.frame_lock:
                         self.latest_frame_bytes = buf.getvalue()
@@ -171,7 +172,8 @@ class GameController:
 
     def is_near_merchant(self):
         """Check if player is adjacent to merchant"""
-        if not self.game_core.merchant: return False
+        if not self.game_core.merchant:
+            return False
         p = self.game_core.player
         m = self.game_core.merchant
         dist = abs(p.row - m.row) + abs(p.col - m.col)
@@ -201,7 +203,7 @@ class GameController:
                 pygame.K_w: "up",
                 pygame.K_s: "down",
                 pygame.K_a: "left",
-                pygame.K_d: "right"
+                pygame.K_d: "right",
             }
 
             if modifiers & pygame.KMOD_SHIFT:
@@ -217,15 +219,21 @@ class GameController:
                 pygame.K_UP: "up",
                 pygame.K_DOWN: "down",
                 pygame.K_LEFT: "left",
-                pygame.K_RIGHT: "right"
+                pygame.K_RIGHT: "right",
             }
 
             if modifiers & pygame.KMOD_CTRL:
                 # Bow attack
-                command = {"action": "attack_bow", "direction": direction_map[event.key]}
+                command = {
+                    "action": "attack_bow",
+                    "direction": direction_map[event.key],
+                }
             else:
                 # Sword attack
-                command = {"action": "attack_sword", "direction": direction_map[event.key]}
+                command = {
+                    "action": "attack_sword",
+                    "direction": direction_map[event.key],
+                }
 
         # Handle other keys
         else:
@@ -233,17 +241,20 @@ class GameController:
                 # Items and inventory
                 pygame.K_h: {"action": "use_item", "item_type": "health"},
                 pygame.K_SPACE: {"action": "use_item", "item_type": "health"},
-
                 # Upgrades
                 pygame.K_3: {"action": "upgrade", "upgrade_type": "health"},
-
                 # Game management
                 pygame.K_r: {"action": "reset"},
-                pygame.K_n: {"action": "next_level"} if modifiers & pygame.KMOD_SHIFT else None,
-
+                pygame.K_n: (
+                    {"action": "next_level"} if modifiers & pygame.KMOD_SHIFT else None
+                ),
                 # Debug/cheat keys
-                pygame.K_c: {"action": "add_coins"} if modifiers & pygame.KMOD_CTRL else None,
-                pygame.K_l: {"action": "heal_player"} if modifiers & pygame.KMOD_CTRL else None,
+                pygame.K_c: (
+                    {"action": "add_coins"} if modifiers & pygame.KMOD_CTRL else None
+                ),
+                pygame.K_l: (
+                    {"action": "heal_player"} if modifiers & pygame.KMOD_CTRL else None
+                ),
             }
 
             if event.key in key_commands and key_commands[event.key] is not None:
@@ -265,10 +276,9 @@ class GameController:
                     print("No more levels")
             else:
                 # Send normal command through the interface
-                self.external_interface.handle_command({
-                    "type": "game_command",
-                    "command": command
-                })
+                self.external_interface.handle_command(
+                    {"type": "game_command", "command": command}
+                )
 
             # Print debug info
             print(f"Executing command: {command}")
@@ -279,16 +289,19 @@ class GameController:
 import io
 import threading
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from PIL import Image
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 import numpy as np
+from PIL import Image
 
 
 class GameStreamHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/stream':
+        if self.path == "/stream":
             self.send_response(200)
-            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
+            self.send_header(
+                "Content-Type", "multipart/x-mixed-replace; boundary=frame"
+            )
             self.end_headers()
 
             while True:
@@ -298,12 +311,12 @@ class GameStreamHandler(BaseHTTPRequestHandler):
                     frame_data = self.server.game_controller.get_latest_frame()
 
                     if frame_data:
-                        self.wfile.write(b'--frame\r\n')
-                        self.send_header('Content-Type', 'image/jpeg')
-                        self.send_header('Content-Length', len(frame_data))
+                        self.wfile.write(b"--frame\r\n")
+                        self.send_header("Content-Type", "image/jpeg")
+                        self.send_header("Content-Length", len(frame_data))
                         self.end_headers()
                         self.wfile.write(frame_data)
-                        self.wfile.write(b'\r\n')
+                        self.wfile.write(b"\r\n")
 
                     # Limit FPS of the stream to save CPU
                     time.sleep(0.05)
@@ -324,7 +337,7 @@ class GameStreamHandler(BaseHTTPRequestHandler):
 
 class GameStreamServer(HTTPServer):
     def __init__(self, game_controller):
-        super().__init__(('localhost', 8080), GameStreamHandler)
+        super().__init__(("localhost", 8080), GameStreamHandler)
         self.game_controller = game_controller
         self.timeout = 1  # Set timeout to prevent blocking
 

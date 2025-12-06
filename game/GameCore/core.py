@@ -1,4 +1,5 @@
 import pygame
+
 from game.GameCore.config import GameConfig, GameState, UIStyle
 from game.GameCore.entities.projectile import Projectile
 from game.GameCore.levels.level_manager import LevelManager
@@ -25,7 +26,7 @@ class GameCore:
         # Define Merchant Shop Items
         self.shop_items = [
             {"name": "Health Potion", "cost": 10, "action": "buy_potion", "key": "1"},
-            {"name": "Arrows (x5)", "cost": 15, "action": "buy_arrows", "key": "2"}
+            {"name": "Arrows (x5)", "cost": 15, "action": "buy_arrows", "key": "2"},
         ]
 
         self.grid = None
@@ -58,7 +59,9 @@ class GameCore:
 
         self.grid_width = level_data["grid_width"]
         self.grid_height = level_data["grid_height"]
-        self.grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
+        self.grid = [
+            [None for _ in range(self.grid_width)] for _ in range(self.grid_height)
+        ]
 
         # Update screen size
         target_width = self.grid_width * self.cell_size
@@ -66,15 +69,28 @@ class GameCore:
 
         # Only recreate window if size changed or it doesn't exist
         # This prevents GL Context crashes in threading
-        if self.screen is None or self.screen.get_width() != target_width or self.screen.get_height() != target_height:
+        if (
+            self.screen is None
+            or self.screen.get_width() != target_width
+            or self.screen.get_height() != target_height
+        ):
             self.screen_width = target_width
             self.screen_height = target_height
-            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            self.screen = pygame.display.set_mode(
+                (self.screen_width, self.screen_height)
+            )
 
         self.projectiles = []
         # Create entities
-        (self.player, self.walls, self.enemies, self.items,
-         self.chests, self.exit_portal, self.merchant) = self.level_manager.create_level_entities(level_data)
+        (
+            self.player,
+            self.walls,
+            self.enemies,
+            self.items,
+            self.chests,
+            self.exit_portal,
+            self.merchant,
+        ) = self.level_manager.create_level_entities(level_data)
 
         # Reset counters
         self.turn_count = 0
@@ -103,7 +119,9 @@ class GameCore:
             proj.move()
 
             # 1. Check Bounds
-            if not (0 <= proj.row < self.grid_height and 0 <= proj.col < self.grid_width):
+            if not (
+                0 <= proj.row < self.grid_height and 0 <= proj.col < self.grid_width
+            ):
                 self.projectiles.remove(proj)
                 continue
 
@@ -139,7 +157,7 @@ class GameCore:
         self.update_projectiles()
         # Update enemy cooldowns
         for enemy in self.enemies:
-            if hasattr(enemy, 'update_cooldowns'):
+            if hasattr(enemy, "update_cooldowns"):
                 enemy.update_cooldowns()
 
         # Move enemies
@@ -150,12 +168,24 @@ class GameCore:
                     if enemy.can_attack_player(self.player, self.walls):
                         enemy.attack(self.player)
                     else:
-                        enemy.move_towards_player(self.player, self.grid,
-                                                  self.grid_width, self.grid_height, self.walls, self.items)
+                        enemy.move_towards_player(
+                            self.player,
+                            self.grid,
+                            self.grid_width,
+                            self.grid_height,
+                            self.walls,
+                            self.items,
+                        )
                 else:
                     # Melee enemies move towards player
-                    enemy.move_towards_player(self.player, self.grid,
-                                              self.grid_width, self.grid_height, self.walls, self.items)
+                    enemy.move_towards_player(
+                        self.player,
+                        self.grid,
+                        self.grid_width,
+                        self.grid_height,
+                        self.walls,
+                        self.items,
+                    )
 
         # Check collisions
         self.check_collisions()
@@ -170,8 +200,12 @@ class GameCore:
     def check_collisions(self):
         # Check player-enemy collisions (melee combat)
         for enemy in self.enemies[:]:
-            if (enemy.is_alive() and enemy.enemy_type == "melee" and
-                    enemy.row == self.player.row and enemy.col == self.player.col):
+            if (
+                enemy.is_alive()
+                and enemy.enemy_type == "melee"
+                and enemy.row == self.player.row
+                and enemy.col == self.player.col
+            ):
                 self.player.take_damage(enemy.damage)
 
         # Check player-item collisions
@@ -183,7 +217,11 @@ class GameCore:
 
         # Check player-chest collisions
         for chest in self.chests:
-            if not chest.opened and chest.row == self.player.row and chest.col == self.player.col:
+            if (
+                not chest.opened
+                and chest.row == self.player.row
+                and chest.col == self.player.col
+            ):
                 contents = chest.open()
 
                 # Prepare popup content
@@ -206,8 +244,9 @@ class GameCore:
 
     def check_level_completion(self):
         level_data = self.level_manager.get_current_level()
-        if self.level_manager.is_level_complete(self.player, self.enemies,
-                                                self.exit_portal, level_data):
+        if self.level_manager.is_level_complete(
+            self.player, self.enemies, self.exit_portal, level_data
+        ):
             if self.level_manager.has_more_levels():
                 self.level_manager.next_level()
                 self.initialize_level()
@@ -261,11 +300,15 @@ class GameCore:
 
         # Draw Title
         title_surf = self.large_font.render(title_text, True, title_color)
-        title_rect = title_surf.get_rect(center=(self.screen_width // 2, self.screen_height // 3))
+        title_rect = title_surf.get_rect(
+            center=(self.screen_width // 2, self.screen_height // 3)
+        )
         self.screen.blit(title_surf, title_rect)
 
         sub_surf = self.small_font.render(sub_text, True, (200, 200, 200))
-        sub_rect = sub_surf.get_rect(center=(self.screen_width // 2, self.screen_height // 3 + 50))
+        sub_rect = sub_surf.get_rect(
+            center=(self.screen_width // 2, self.screen_height // 3 + 50)
+        )
         self.screen.blit(sub_surf, sub_rect)
 
         # --- DRAW BUTTONS ---
@@ -274,11 +317,17 @@ class GameCore:
 
         # Button 1: Try Again / Play Again
         btn1_y = self.screen_height // 2 + 30
-        self.btn_retry_rect = pygame.Rect(center_x - btn_width // 2, btn1_y, btn_width, btn_height)
+        self.btn_retry_rect = pygame.Rect(
+            center_x - btn_width // 2, btn1_y, btn_width, btn_height
+        )
 
         # Hover Effect 1
         mouse_pos = pygame.mouse.get_pos()
-        color1 = (50, 150, 50) if self.btn_retry_rect.collidepoint(mouse_pos) else (30, 100, 30)
+        color1 = (
+            (50, 150, 50)
+            if self.btn_retry_rect.collidepoint(mouse_pos)
+            else (30, 100, 30)
+        )
 
         pygame.draw.rect(self.screen, color1, self.btn_retry_rect)
         pygame.draw.rect(self.screen, (100, 200, 100), self.btn_retry_rect, 2)
@@ -290,10 +339,16 @@ class GameCore:
 
         # Button 2: Main Menu
         btn2_y = btn1_y + 70
-        self.btn_menu_rect = pygame.Rect(center_x - btn_width // 2, btn2_y, btn_width, btn_height)
+        self.btn_menu_rect = pygame.Rect(
+            center_x - btn_width // 2, btn2_y, btn_width, btn_height
+        )
 
         # Hover Effect 2
-        color2 = (150, 50, 50) if self.btn_menu_rect.collidepoint(mouse_pos) else (100, 30, 30)
+        color2 = (
+            (150, 50, 50)
+            if self.btn_menu_rect.collidepoint(mouse_pos)
+            else (100, 30, 30)
+        )
 
         pygame.draw.rect(self.screen, color2, self.btn_menu_rect)
         pygame.draw.rect(self.screen, (200, 100, 100), self.btn_menu_rect, 2)
@@ -311,17 +366,26 @@ class GameCore:
         if floor_anim:
             floor_img = floor_anim[0]
             # Scale it once to match cell size
-            floor_img = pygame.transform.scale(floor_img, (self.cell_size, self.cell_size))
+            floor_img = pygame.transform.scale(
+                floor_img, (self.cell_size, self.cell_size)
+            )
 
             # Draw floor grid
             for r in range(self.grid_height):
                 for c in range(self.grid_width):
-                    self.screen.blit(floor_img, (c * self.cell_size, r * self.cell_size))
+                    self.screen.blit(
+                        floor_img, (c * self.cell_size, r * self.cell_size)
+                    )
         else:
             # Fallback if resource missing: Draw basic rectangles
             for r in range(self.grid_height):
                 for c in range(self.grid_width):
-                    rect = (c * self.cell_size, r * self.cell_size, self.cell_size, self.cell_size)
+                    rect = (
+                        c * self.cell_size,
+                        r * self.cell_size,
+                        self.cell_size,
+                        self.cell_size,
+                    )
                     pygame.draw.rect(self.screen, (30, 30, 40), rect)
                     pygame.draw.rect(self.screen, (40, 40, 50), rect, 1)
         # --- UPDATE & DRAW ENTITIES ---
@@ -330,8 +394,10 @@ class GameCore:
         all_entities = []
 
         # Walkable items
-        if self.exit_portal: all_entities.append(self.exit_portal)
-        if self.merchant: all_entities.append(self.merchant)
+        if self.exit_portal:
+            all_entities.append(self.exit_portal)
+        if self.merchant:
+            all_entities.append(self.merchant)
         all_entities.extend(self.items)
 
         # Solids
@@ -343,7 +409,7 @@ class GameCore:
         # Draw them
         for entity in all_entities:
             # Make sure entity has the update_visuals method
-            if hasattr(entity, 'update_visuals'):
+            if hasattr(entity, "update_visuals"):
                 entity.update_visuals(dt)
             entity.draw(self.screen)  # No args needed now
 
@@ -361,20 +427,17 @@ class GameCore:
                 "Welcome, brave adventurer.",
                 "",
                 "Navigate the grid, defeat enemies,",
-                "and find the exit portal."
+                "and find the exit portal.",
             ],
-            footer_text="Controls: WASD (Move) | SHIFT (Dash) | SPACE (Interact) | ENTER to Start"
+            footer_text="Controls: WASD (Move) | SHIFT (Dash) | SPACE (Interact) | ENTER to Start",
         )
 
     def draw_pause_screen(self):
         self.draw_ui_window(
             title="GAME PAUSED",
             title_color=(255, 255, 255),
-            content_lines=[
-                "Take a breath.",
-                "The dungeon will wait."
-            ],
-            footer_text="Press P or ESC to Resume | Q to Quit"
+            content_lines=["Take a breath.", "The dungeon will wait."],
+            footer_text="Press P or ESC to Resume | Q to Quit",
         )
 
     def draw_merchant_screen(self):
@@ -385,7 +448,7 @@ class GameCore:
 
         for item in self.shop_items:
             # Color logic: Green if affordable, Red if not
-            can_afford = self.player.coins >= item['cost']
+            can_afford = self.player.coins >= item["cost"]
             color = (100, 255, 100) if can_afford else (200, 80, 80)
 
             text = f"[{item['key']}] {item['name']} ... {item['cost']} G"
@@ -395,14 +458,14 @@ class GameCore:
             title="MERCHANT SHOP",
             title_color=(255, 215, 0),  # Gold
             content_lines=lines,
-            footer_text="Press Number Keys to Buy | M or ESC to Leave"
+            footer_text="Press Number Keys to Buy | M or ESC to Leave",
         )
 
     def draw_game_over_screen(self):
         # Define the buttons structure
         buttons = [
-            {'text': "Try Again", 'key': 'T', 'rect': self.btn_retry_rect},
-            {'text': "Main Menu", 'key': 'M', 'rect': self.btn_menu_rect}
+            {"text": "Try Again", "key": "T", "rect": self.btn_retry_rect},
+            {"text": "Main Menu", "key": "M", "rect": self.btn_menu_rect},
         ]
 
         self.draw_ui_window(
@@ -411,16 +474,16 @@ class GameCore:
             content_lines=[
                 "You have fallen in battle.",
                 f"Level Reached: {self.level_manager.current_level}",
-                f"Gold Collected: {self.player.coins}"
+                f"Gold Collected: {self.player.coins}",
             ],
-            buttons=buttons
+            buttons=buttons,
         )
 
     def draw_victory_screen(self):
         # Using same buttons, different text
         buttons = [
-            {'text': "Play Again", 'key': 'T', 'rect': self.btn_retry_rect},
-            {'text': "Main Menu", 'key': 'M', 'rect': self.btn_menu_rect}
+            {"text": "Play Again", "key": "T", "rect": self.btn_retry_rect},
+            {"text": "Main Menu", "key": "M", "rect": self.btn_menu_rect},
         ]
 
         self.draw_ui_window(
@@ -430,42 +493,46 @@ class GameCore:
                 "You have escaped the dungeon!",
                 "The surface sun feels warm.",
                 "",
-                f"Final Gold: {self.player.coins}"
+                f"Final Gold: {self.player.coins}",
             ],
-            buttons=buttons
+            buttons=buttons,
         )
 
     def draw_chest_popup(self):
         self.draw_ui_window(
             title="CHEST OPENED",
             title_color=(255, 215, 0),  # Gold
-            content_lines=getattr(self, 'loot_lines', ["Empty"]),
-            footer_text="Press SPACE or ENTER to Continue"
+            content_lines=getattr(self, "loot_lines", ["Empty"]),
+            footer_text="Press SPACE or ENTER to Continue",
         )
 
     def buy_item(self, index):
         if 0 <= index < len(self.shop_items):
             item = self.shop_items[index]
-            if self.player.coins >= item['cost']:
+            if self.player.coins >= item["cost"]:
 
                 # Apply purchase logic
-                if item['action'] == "buy_potion":
+                if item["action"] == "buy_potion":
                     self.player.inventory["health"] += 1
-                elif item['action'] == "buy_arrows":
+                elif item["action"] == "buy_arrows":
                     self.player.inventory["arrows"] += 5
 
-                self.player.coins -= item['cost']
+                self.player.coins -= item["cost"]
                 return True
         return False
 
     def draw_ui(self):
         # Player stats
-        health_text = self.font.render(f"Health: {self.player.health}/{self.player.max_health}",
-                                       True, GameConfig.COLORS['ui_text'])
+        health_text = self.font.render(
+            f"Health: {self.player.health}/{self.player.max_health}",
+            True,
+            GameConfig.COLORS["ui_text"],
+        )
         self.screen.blit(health_text, (10, 10))
 
-        coins_text = self.small_font.render(f"Coins: {self.player.coins}",
-                                            True, (255, 215, 0))
+        coins_text = self.small_font.render(
+            f"Coins: {self.player.coins}", True, (255, 215, 0)
+        )
         self.screen.blit(coins_text, (10, 50))
 
         # Equipment
@@ -473,21 +540,24 @@ class GameCore:
         bow_status = "Equipped" if self.player.has_bow else "None"
         equipment_text = self.small_font.render(
             f"Sword: {sword_status} | Bow: {bow_status} | Arrows: {self.player.inventory['arrows']}",
-            True, GameConfig.COLORS['ui_secondary']
+            True,
+            GameConfig.COLORS["ui_secondary"],
         )
         self.screen.blit(equipment_text, (10, 80))
 
         # Inventory
         inventory_text = self.small_font.render(
             f"Health Potions: {self.player.inventory['health']}",
-            True, GameConfig.COLORS['ui_secondary']
+            True,
+            GameConfig.COLORS["ui_secondary"],
         )
         self.screen.blit(inventory_text, (10, 110))
 
         # Dash cooldown
         dash_text = self.small_font.render(
             f"Dash: {'Ready' if self.player.dash_cooldown == 0 else f'{self.player.dash_cooldown} turns'}",
-            True, (0, 200, 255) if self.player.dash_cooldown == 0 else (150, 150, 150)
+            True,
+            (0, 200, 255) if self.player.dash_cooldown == 0 else (150, 150, 150),
         )
         self.screen.blit(dash_text, (10, 140))
 
@@ -495,21 +565,23 @@ class GameCore:
         level_data = self.level_manager.get_current_level()
         level_text = self.small_font.render(
             f"Level {self.level_manager.current_level}: {level_data['name']}",
-            True, (200, 200, 0)
+            True,
+            (200, 200, 0),
         )
         self.screen.blit(level_text, (10, 170))
 
         # Completion condition
         condition_text = self.small_font.render(
-            "Goal: Find and Enter the Portal",
-            True, (200, 200, 0)
+            "Goal: Find and Enter the Portal", True, (200, 200, 0)
         )
         self.screen.blit(condition_text, (10, 200))
 
         # Game completed message
         if self.game_completed:
             completed_text = self.font.render("ESCAPE SUCCESSFUL!", True, (0, 255, 0))
-            text_rect = completed_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
+            text_rect = completed_text.get_rect(
+                center=(self.screen_width // 2, self.screen_height // 2)
+            )
             self.screen.blit(completed_text, text_rect)
 
     def execute_command(self, command):
@@ -518,7 +590,9 @@ class GameCore:
 
         if action == "move":
             direction = command.get("direction")
-            if self.player.move(direction, self.grid, self.grid_width, self.grid_height):
+            if self.player.move(
+                direction, self.grid, self.grid_width, self.grid_height
+            ):
                 result["direction"] = direction
                 result["position"] = (self.player.row, self.player.col)
                 self.check_collisions()
@@ -529,7 +603,9 @@ class GameCore:
 
         elif action == "dash":
             direction = command.get("direction")
-            if self.player.dash(direction, self.grid, self.grid_width, self.grid_height):
+            if self.player.dash(
+                direction, self.grid, self.grid_width, self.grid_height
+            ):
                 result["direction"] = direction
                 result["position"] = (self.player.row, self.player.col)
                 self.check_collisions()
@@ -543,8 +619,12 @@ class GameCore:
             hit_enemies = self.player.attack_sword(direction, self.enemies)
             if hit_enemies:
                 result["hit_enemies"] = [
-                    {"position": (e.row, e.col), "damage": GameConfig.PLAYER_BASE_DAMAGE}
-                    for e in hit_enemies]
+                    {
+                        "position": (e.row, e.col),
+                        "damage": GameConfig.PLAYER_BASE_DAMAGE,
+                    }
+                    for e in hit_enemies
+                ]
                 # Remove defeated enemies
                 for enemy in hit_enemies[:]:
                     if not enemy.is_alive():
@@ -554,7 +634,6 @@ class GameCore:
             else:
                 result["status"] = "error"
                 result["message"] = "No enemies in range"
-
 
         elif action == "attack_bow":
             if not self.player.has_bow:
@@ -652,18 +731,27 @@ class GameCore:
                 "has_sword": self.player.has_sword,
                 "has_bow": self.player.has_bow,
                 "inventory": self.player.inventory.copy(),
-                "dash_cooldown": self.player.dash_cooldown
+                "dash_cooldown": self.player.dash_cooldown,
             },
             "stats": {
                 "turn_count": self.turn_count,
-                "enemies_remaining": sum(1 for e in self.enemies if e.is_alive())
+                "enemies_remaining": sum(1 for e in self.enemies if e.is_alive()),
             },
-            "completion_condition": level_data.get("completion_condition", "defeat_enemies"),
+            "completion_condition": level_data.get(
+                "completion_condition", "defeat_enemies"
+            ),
             "game_completed": self.game_completed,
-            "grid_dimensions": (self.grid_width, self.grid_height)
+            "grid_dimensions": (self.grid_width, self.grid_height),
         }
 
-    def draw_ui_window(self, title, content_lines, footer_text=None, title_color=(255, 255, 255), buttons=None):
+    def draw_ui_window(
+        self,
+        title,
+        content_lines,
+        footer_text=None,
+        title_color=(255, 255, 255),
+        buttons=None,
+    ):
         """
         Generic method to draw a consistent popup window.
 
@@ -690,20 +778,28 @@ class GameCore:
 
         # 3. Draw Main Box and Border
         pygame.draw.rect(self.screen, UIStyle.BG_COLOR, window_rect)
-        pygame.draw.rect(self.screen, UIStyle.BORDER_COLOR, window_rect, UIStyle.BORDER_WIDTH)
+        pygame.draw.rect(
+            self.screen, UIStyle.BORDER_COLOR, window_rect, UIStyle.BORDER_WIDTH
+        )
 
         # Inner decorative line
         pygame.draw.rect(self.screen, (20, 20, 20), window_rect.inflate(-10, -10), 1)
 
         # 4. Draw Title
         title_surf = self.large_font.render(title, True, title_color)
-        title_rect = title_surf.get_rect(center=(self.screen_width // 2, window_y + UIStyle.PADDING + 20))
+        title_rect = title_surf.get_rect(
+            center=(self.screen_width // 2, window_y + UIStyle.PADDING + 20)
+        )
         self.screen.blit(title_surf, title_rect)
 
         # Draw separator line under title
-        pygame.draw.line(self.screen, UIStyle.BORDER_COLOR,
-                         (window_x + 50, title_rect.bottom + 10),
-                         (window_x + window_width - 50, title_rect.bottom + 10), 2)
+        pygame.draw.line(
+            self.screen,
+            UIStyle.BORDER_COLOR,
+            (window_x + 50, title_rect.bottom + 10),
+            (window_x + window_width - 50, title_rect.bottom + 10),
+            2,
+        )
 
         # 5. Draw Body Content
         start_y = title_rect.bottom + 40
@@ -718,40 +814,46 @@ class GameCore:
                 color = UIStyle.TEXT_COLOR
 
             line_surf = self.font.render(text, True, color)
-            line_rect = line_surf.get_rect(center=(self.screen_width // 2, start_y + (i * line_height)))
+            line_rect = line_surf.get_rect(
+                center=(self.screen_width // 2, start_y + (i * line_height))
+            )
             self.screen.blit(line_surf, line_rect)
 
         # 6. Draw Buttons (if any)
         if buttons:
-            btn_start_y = window_y + window_height - UIStyle.PADDING - (len(buttons) * 60)
+            btn_start_y = (
+                window_y + window_height - UIStyle.PADDING - (len(buttons) * 60)
+            )
             mouse_pos = pygame.mouse.get_pos()
 
             for i, btn in enumerate(buttons):
                 # Update the Rect position in place so the Controller knows where it is
                 rect_width = 250
                 rect_height = 50
-                btn['rect'].x = (self.screen_width // 2) - (rect_width // 2)
-                btn['rect'].y = btn_start_y + (i * 60)
-                btn['rect'].width = rect_width
-                btn['rect'].height = rect_height
+                btn["rect"].x = (self.screen_width // 2) - (rect_width // 2)
+                btn["rect"].y = btn_start_y + (i * 60)
+                btn["rect"].width = rect_width
+                btn["rect"].height = rect_height
 
                 # Hover Effect
-                is_hovered = btn['rect'].collidepoint(mouse_pos)
+                is_hovered = btn["rect"].collidepoint(mouse_pos)
                 bg_color = (60, 60, 60) if not is_hovered else (80, 80, 100)
                 border_col = UIStyle.BORDER_COLOR if not is_hovered else (255, 255, 255)
 
                 # Draw Button
-                pygame.draw.rect(self.screen, bg_color, btn['rect'])
-                pygame.draw.rect(self.screen, border_col, btn['rect'], 2)
+                pygame.draw.rect(self.screen, bg_color, btn["rect"])
+                pygame.draw.rect(self.screen, border_col, btn["rect"], 2)
 
                 # Button Text
                 btn_text = f"{btn['text']} ({btn['key']})"
                 text_surf = self.font.render(btn_text, True, (255, 255, 255))
-                text_rect = text_surf.get_rect(center=btn['rect'].center)
+                text_rect = text_surf.get_rect(center=btn["rect"].center)
                 self.screen.blit(text_surf, text_rect)
 
         # 7. Draw Footer (if no buttons, or below buttons)
         if footer_text and not buttons:
             footer_surf = self.small_font.render(footer_text, True, (150, 150, 150))
-            footer_rect = footer_surf.get_rect(center=(self.screen_width // 2, window_y + window_height - 30))
+            footer_rect = footer_surf.get_rect(
+                center=(self.screen_width // 2, window_y + window_height - 30)
+            )
             self.screen.blit(footer_surf, footer_rect)

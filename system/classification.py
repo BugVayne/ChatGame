@@ -1,11 +1,12 @@
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import train_test_split
 import json
 
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import make_pipeline
+
 # Чтение данных из JSON файла
-with open('data.json', 'r', encoding='utf-8') as file:
+with open("data.json", "r", encoding="utf-8") as file:
     json_data = json.load(file)
 
 # Преобразование данных в нужный формат
@@ -13,7 +14,7 @@ data = []
 for intent, directions in json_data.items():
     for direction, phrases in directions.items():
         for phrase in phrases:
-            data.append((phrase['phrase'], intent))  # Используем только намерение
+            data.append((phrase["phrase"], intent))  # Используем только намерение
 
 # Пример вывода результата
 for item in data:
@@ -23,7 +24,9 @@ for item in data:
 messages, labels = zip(*data)
 
 # Разделим данные на обучающую и тестовую выборки
-X_train, X_test, y_train, y_test = train_test_split(messages, labels, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    messages, labels, test_size=0.2, random_state=42
+)
 
 # Создаем модель
 model = make_pipeline(CountVectorizer(), MultinomialNB())
@@ -44,11 +47,13 @@ new_messages = [
     "рывок вверх",
     "рывок налево",
     "возьми меч",
-    "ударь вверх"
+    "ударь вверх",
 ]
 
 predictions = model.predict(new_messages)
 for message in new_messages:
     predicted_intent = model.predict([message])[0]
     entity = message.split()[-1]  # Предполагается, что сущность - это последнее слово
-    print(f"Сообщение: '{message}' -> Намерение: '{predicted_intent}', Сущность: '{entity}'")
+    print(
+        f"Сообщение: '{message}' -> Намерение: '{predicted_intent}', Сущность: '{entity}'"
+    )

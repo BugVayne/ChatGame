@@ -1,12 +1,13 @@
+import json
+from datetime import datetime
+
+import websocket
 from flask import Flask, render_template
 from flask_sock import Sock
-from datetime import datetime
-import json
-import websocket
-
-from user import User
-from system import System
 from problem_solver import ProblemSolver
+from user import User
+
+from system import System
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = "change_this_secret_key"
@@ -36,51 +37,53 @@ def send_command_to_game(nlp_data):
 
     # Extended map to handle cases from data.json better
     direction_map = {
-        'вверх': 'up', 'выше': 'up', 'наверх': 'up',
-        'вниз': 'down', 'ниже': 'down',
-        'влево': 'left', 'налево': 'left',
-        'вправо': 'right', 'направо': 'right'
+        "вверх": "up",
+        "выше": "up",
+        "наверх": "up",
+        "вниз": "down",
+        "ниже": "down",
+        "влево": "left",
+        "налево": "left",
+        "вправо": "right",
+        "направо": "right",
     }
 
     direction_eng = direction_map.get(direction_ru)
     command = {}
 
-    if intent == 'movement' and direction_eng:
+    if intent == "movement" and direction_eng:
         command = {"action": "move", "direction": direction_eng}
 
-    elif intent == 'dash' and direction_eng:
+    elif intent == "dash" and direction_eng:
         command = {"action": "dash", "direction": direction_eng}
 
-    elif intent == 'attack' and direction_eng:
+    elif intent == "attack" and direction_eng:
         command = {"action": "attack_sword", "direction": direction_eng}
 
-    elif intent == 'shoot' and direction_eng:
+    elif intent == "shoot" and direction_eng:
         command = {"action": "attack_bow", "direction": direction_eng}
 
-    elif intent == 'heal':
+    elif intent == "heal":
         command = {"action": "use_item", "item_type": "health"}
 
-    elif intent == 'reset':
+    elif intent == "reset":
         command = {"action": "reset"}
 
-    elif intent == 'greeting':
+    elif intent == "greeting":
         return "OK"  # No game command needed
 
-    elif intent == 'unknown':
+    elif intent == "unknown":
         return "INVALID_CMD"
 
     else:
         # If intent requires direction but it's missing (e.g. "attack" without "up")
-        if intent in ['movement', 'attack', 'shoot', 'dash'] and not direction_eng:
+        if intent in ["movement", "attack", "shoot", "dash"] and not direction_eng:
             return "INVALID_CMD"
 
     if command:
         try:
             ws = websocket.create_connection(GAME_WS_URL, timeout=0.5)
-            payload = {
-                "type": "game_command",
-                "command": command
-            }
+            payload = {"type": "game_command", "command": command}
             ws.send(json.dumps(payload))
             ws.close()
             return "OK"
@@ -98,11 +101,13 @@ def now_time():
 # Стартовое приветствие от системы — как в main.py через system.greating_message()
 greeting = system.greating_message()
 user.history.append(greeting)
-history.append({
-    "role": "system",
-    "text": greeting,
-    "time": now_time(),
-})
+history.append(
+    {
+        "role": "system",
+        "text": greeting,
+        "time": now_time(),
+    }
+)
 
 
 @app.route("/")
@@ -118,10 +123,15 @@ def ws_chat(ws):
     На каждый подключившийся браузер — отдельный цикл while True.
     """
     # При подключении сразу отправляем клиенту всю историю
-    ws.send(json.dumps({
-        "type": "history",
-        "messages": history,
-    }, ensure_ascii=False))
+    ws.send(
+        json.dumps(
+            {
+                "type": "history",
+                "messages": history,
+            },
+            ensure_ascii=False,
+        )
+    )
 
     # Основной цикл обмена
     while True:
@@ -150,10 +160,15 @@ def ws_chat(ws):
         history.append(user_msg)
 
         # Эхо-посылка сообщения пользователя клиенту (чтобы не ждать ответа системы)
-        ws.send(json.dumps({
-            "type": "message",
-            "message": user_msg,
-        }, ensure_ascii=False))
+        ws.send(
+            json.dumps(
+                {
+                    "type": "message",
+                    "message": user_msg,
+                },
+                ensure_ascii=False,
+            )
+        )
 
         # === Генерация ответа системы (как в main.py) ===
         # === Генерация ответа системы (как в main.py) ===
@@ -174,7 +189,11 @@ def ws_chat(ws):
 
             if status == "CONNECT_ERROR":
                 reply_text += " [Ошибка: Игра не запущена или недоступна]"
-            elif status == "INVALID_CMD" and data_for_solver[0] in ['movement', 'fight', 'jerk']:
+            elif status == "INVALID_CMD" and data_for_solver[0] in [
+                "movement",
+                "fight",
+                "jerk",
+            ]:
                 # Optional: Hint the user if we recognized intent but not direction
                 pass
 
@@ -189,10 +208,15 @@ def ws_chat(ws):
         history.append(system_msg)
 
         # Отправляем ответ системы
-        ws.send(json.dumps({
-            "type": "message",
-            "message": system_msg,
-        }, ensure_ascii=False))
+        ws.send(
+            json.dumps(
+                {
+                    "type": "message",
+                    "message": system_msg,
+                },
+                ensure_ascii=False,
+            )
+        )
 
 
 if __name__ == "__main__":

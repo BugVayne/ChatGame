@@ -1,5 +1,5 @@
-from game.GameCore.entities.game_object import GameObject
 from game.GameCore.config import GameConfig
+from game.GameCore.entities.game_object import GameObject
 
 
 class Player(GameObject):
@@ -29,7 +29,12 @@ class Player(GameObject):
 
         # Check if target cell is passable
         target_obj = grid[new_row][new_col]
-        if target_obj is None or target_obj.type in ["item", "exit", "merchant", "chest"]:
+        if target_obj is None or target_obj.type in [
+            "item",
+            "exit",
+            "merchant",
+            "chest",
+        ]:
             grid[self.row][self.col] = None
             self.row, self.col = new_row, new_col
             grid[new_row][new_col] = self
@@ -108,13 +113,33 @@ class Player(GameObject):
             row_diff = abs(enemy.row - self.row)
             col_diff = abs(enemy.col - self.col)
 
-            if direction == "up" and enemy.col == self.col and enemy.row < self.row and self.row - enemy.row <= range_distance:
+            if (
+                direction == "up"
+                and enemy.col == self.col
+                and enemy.row < self.row
+                and self.row - enemy.row <= range_distance
+            ):
                 hit_enemies.append(enemy)
-            elif direction == "down" and enemy.col == self.col and enemy.row > self.row and enemy.row - self.row <= range_distance:
+            elif (
+                direction == "down"
+                and enemy.col == self.col
+                and enemy.row > self.row
+                and enemy.row - self.row <= range_distance
+            ):
                 hit_enemies.append(enemy)
-            elif direction == "left" and enemy.row == self.row and enemy.col < self.col and self.col - enemy.col <= range_distance:
+            elif (
+                direction == "left"
+                and enemy.row == self.row
+                and enemy.col < self.col
+                and self.col - enemy.col <= range_distance
+            ):
                 hit_enemies.append(enemy)
-            elif direction == "right" and enemy.row == self.row and enemy.col > self.col and enemy.col - self.col <= range_distance:
+            elif (
+                direction == "right"
+                and enemy.row == self.row
+                and enemy.col > self.col
+                and enemy.col - self.col <= range_distance
+            ):
                 hit_enemies.append(enemy)
 
         # Apply damage
@@ -157,9 +182,17 @@ class Player(GameObject):
 
             # Check enemies
             for enemy in enemies:
-                if enemy.is_alive() and enemy.row == check_row and enemy.col == check_col:
+                if (
+                    enemy.is_alive()
+                    and enemy.row == check_row
+                    and enemy.col == check_col
+                ):
                     enemy.take_damage(damage)
-                    return {"type": "enemy", "enemy": enemy, "position": (check_row, check_col)}
+                    return {
+                        "type": "enemy",
+                        "enemy": enemy,
+                        "position": (check_row, check_col),
+                    }
 
         return None
 
@@ -179,12 +212,18 @@ class Player(GameObject):
         if self.inventory.get(item_type, 0) > 0:
             self.inventory[item_type] -= 1
             if item_type == "health":
-                self.health = min(self.max_health, self.health + GameConfig.HEALTH_POTION_HEAL)
+                self.health = min(
+                    self.max_health, self.health + GameConfig.HEALTH_POTION_HEAL
+                )
                 return True
         return False
 
     def upgrade_health(self):
-        if self.max_health < 200 and self.coins >= GameConfig.HEALTH_UPGRADE_COST[0 if self.max_health == 100 else 1]:
+        if (
+            self.max_health < 200
+            and self.coins
+            >= GameConfig.HEALTH_UPGRADE_COST[0 if self.max_health == 100 else 1]
+        ):
             cost_index = 0 if self.max_health == 100 else 1
             self.coins -= GameConfig.HEALTH_UPGRADE_COST[cost_index]
             self.max_health += 50
@@ -198,4 +237,3 @@ class Player(GameObject):
 
     def draw(self, screen):
         super().draw(screen)
-

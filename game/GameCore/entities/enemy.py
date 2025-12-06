@@ -1,9 +1,11 @@
-import pygame
-import random
 import math
+import random
 from collections import deque
-from game.GameCore.entities.game_object import GameObject
+
+import pygame
+
 from game.GameCore.config import GameConfig
+from game.GameCore.entities.game_object import GameObject
 
 
 class EnemyState:
@@ -31,7 +33,9 @@ class Enemy(GameObject):
 
     def can_see_player(self, player, walls):
         # 1. Check distance
-        distance = math.sqrt((self.row - player.row) ** 2 + (self.col - player.col) ** 2)
+        distance = math.sqrt(
+            (self.row - player.row) ** 2 + (self.col - player.col) ** 2
+        )
         if distance > self.detection_range:
             return False
 
@@ -179,7 +183,9 @@ class Enemy(GameObject):
         pygame.draw.circle(screen, color, (center_x + 15, center_y - 20), 4)
 
         if self.enemy_type == "ranged":
-            pygame.draw.circle(screen, GameConfig.COLORS['ranged_enemy'], (center_x, center_y - 10), 5)
+            pygame.draw.circle(
+                screen, GameConfig.COLORS["ranged_enemy"], (center_x, center_y - 10), 5
+            )
 
 
 class RangedEnemy(Enemy):
@@ -195,13 +201,17 @@ class RangedEnemy(Enemy):
         if self.attack_cooldown > 0:
             return False
 
-        distance = math.sqrt((self.row - player.row) ** 2 + (self.col - player.col) ** 2)
+        distance = math.sqrt(
+            (self.row - player.row) ** 2 + (self.col - player.col) ** 2
+        )
 
         # Can only attack if detected, in range, AND not too close (unless trapped)
-        can_shoot = (self.has_detected_player and
-                     distance <= self.attack_range and
-                     distance > 1.5 and
-                     self.has_line_of_sight(player, walls))
+        can_shoot = (
+            self.has_detected_player
+            and distance <= self.attack_range
+            and distance > 1.5
+            and self.has_line_of_sight(player, walls)
+        )
 
         return can_shoot
 
@@ -211,7 +221,9 @@ class RangedEnemy(Enemy):
             self.has_detected_player = True
 
         # 2. Determine State based on distance
-        distance = math.sqrt((self.row - player.row) ** 2 + (self.col - player.col) ** 2)
+        distance = math.sqrt(
+            (self.row - player.row) ** 2 + (self.col - player.col) ** 2
+        )
 
         if not self.has_detected_player:
             self.ai_state = EnemyState.IDLE

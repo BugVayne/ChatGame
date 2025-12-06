@@ -1,4 +1,5 @@
 import pygame
+
 from game.GameCore.config import GameConfig
 from game.GameCore.resource_manager import ResourceManager
 
@@ -111,13 +112,19 @@ class GameObject:
                 smooth_t = t * t * (3 - 2 * t)
 
                 # Lerp: Start + (End - Start) * smooth_t
-                self.visual_x = self.start_visual_x + (self.target_visual_x - self.start_visual_x) * smooth_t
-                self.visual_y = self.start_visual_y + (self.target_visual_y - self.start_visual_y) * smooth_t
+                self.visual_x = (
+                    self.start_visual_x
+                    + (self.target_visual_x - self.start_visual_x) * smooth_t
+                )
+                self.visual_y = (
+                    self.start_visual_y
+                    + (self.target_visual_y - self.start_visual_y) * smooth_t
+                )
 
         # --- 2. ANIMATION LOGIC ---
 
         # Handle Locked Animations (Attack/Hurt)
-        if hasattr(self, 'locked_animation_timer') and self.locked_animation_timer > 0:
+        if hasattr(self, "locked_animation_timer") and self.locked_animation_timer > 0:
             self.locked_animation_timer -= dt
 
             self.animation_timer += dt
@@ -159,8 +166,10 @@ class GameObject:
         frames = self.resources.get_animation(self.animation_key)
 
         # Safety check
-        if not frames: return
-        if self.frame_index >= len(frames): self.frame_index = 0
+        if not frames:
+            return
+        if self.frame_index >= len(frames):
+            self.frame_index = 0
 
         image = frames[self.frame_index]
 
@@ -173,12 +182,27 @@ class GameObject:
             image = pygame.transform.scale(image, (self.cell_size, self.cell_size))
 
         # Draw Shadow
-        shadow_rect = pygame.Rect(self.visual_x + 10, self.visual_y + self.cell_size - 10, self.cell_size - 20, 5)
+        shadow_rect = pygame.Rect(
+            self.visual_x + 10,
+            self.visual_y + self.cell_size - 10,
+            self.cell_size - 20,
+            5,
+        )
         pygame.draw.ellipse(screen, (0, 0, 0, 100), shadow_rect)
 
         # Draw Sprite
         screen.blit(image, (self.visual_x, self.visual_y))
 
-
-        if hasattr(self, 'health') and hasattr(self, 'max_health') and self.health < self.max_health:
-            self.draw_health_bar(screen, self.visual_x, self.visual_y, self.cell_size, self.health, self.max_health)
+        if (
+            hasattr(self, "health")
+            and hasattr(self, "max_health")
+            and self.health < self.max_health
+        ):
+            self.draw_health_bar(
+                screen,
+                self.visual_x,
+                self.visual_y,
+                self.cell_size,
+                self.health,
+                self.max_health,
+            )

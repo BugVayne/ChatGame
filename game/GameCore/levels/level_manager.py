@@ -1,11 +1,11 @@
-from game.GameCore.levels.level_definitions import LEVELS
-from game.GameCore.entities.player import Player
-from game.GameCore.entities.enemy import Enemy, RangedEnemy
-from game.GameCore.entities.item import Item
-from game.GameCore.entities.wall import Wall
-from game.GameCore.entities.exit_portal import ExitPortal
 from game.GameCore.entities.chest import Chest
+from game.GameCore.entities.enemy import Enemy, RangedEnemy
+from game.GameCore.entities.exit_portal import ExitPortal
+from game.GameCore.entities.item import Item
 from game.GameCore.entities.merchant import Merchant
+from game.GameCore.entities.player import Player
+from game.GameCore.entities.wall import Wall
+from game.GameCore.levels.level_definitions import LEVELS
 
 
 class LevelManager:
@@ -63,15 +63,22 @@ class LevelManager:
         # Create items
         items = []
         for item_def in level_data.get("items", []):
-            item = Item(item_def["position"][0], item_def["position"][1],
-                        item_def["type"], item_def.get("value", 1))
+            item = Item(
+                item_def["position"][0],
+                item_def["position"][1],
+                item_def["type"],
+                item_def.get("value", 1),
+            )
             items.append(item)
 
         # Create chests
         chests = []
         for chest_def in level_data.get("chests", []):
-            chest = Chest(chest_def["position"][0], chest_def["position"][1],
-                          chest_def["contents"])
+            chest = Chest(
+                chest_def["position"][0],
+                chest_def["position"][1],
+                chest_def["contents"],
+            )
             chests.append(chest)
 
         # Create exit
@@ -91,7 +98,11 @@ class LevelManager:
     def is_level_complete(self, player, enemies, exit_portal, level_data):
         # The level is complete ONLY if the player stands on the exit portal
         # The state of enemies does not matter
-        if exit_portal and player.row == exit_portal.row and player.col == exit_portal.col:
+        if (
+            exit_portal
+            and player.row == exit_portal.row
+            and player.col == exit_portal.col
+        ):
             return True
 
         return False

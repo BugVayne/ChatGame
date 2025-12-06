@@ -35,23 +35,24 @@ class GameConfig:
 
     # Colors
     COLORS = {
-        'grid_light': (50, 50, 70),
-        'grid_dark': (60, 60, 80),
-        'grid_border': (80, 80, 100),
-        'player': (0, 255, 0),
-        'enemy': (255, 0, 0),
-        'ranged_enemy': (200, 50, 50),
-        'health_item': (0, 200, 255),
-        'sword': (200, 200, 200),
-        'bow': (139, 69, 19),
-        'coin': (255, 215, 0),
-        'wall': (100, 100, 120),
-        'exit': (0, 255, 255),
-        'merchant': (0, 150, 255),
-        'chest': (210, 180, 140),
-        'ui_text': (255, 255, 255),
-        'ui_secondary': (200, 200, 200)
+        "grid_light": (50, 50, 70),
+        "grid_dark": (60, 60, 80),
+        "grid_border": (80, 80, 100),
+        "player": (0, 255, 0),
+        "enemy": (255, 0, 0),
+        "ranged_enemy": (200, 50, 50),
+        "health_item": (0, 200, 255),
+        "sword": (200, 200, 200),
+        "bow": (139, 69, 19),
+        "coin": (255, 215, 0),
+        "wall": (100, 100, 120),
+        "exit": (0, 255, 255),
+        "merchant": (0, 150, 255),
+        "chest": (210, 180, 140),
+        "ui_text": (255, 255, 255),
+        "ui_secondary": (200, 200, 200),
     }
+
 
 class GameState:
     START = "start"
@@ -62,10 +63,11 @@ class GameState:
     GAME_OVER = "game_over"
     VICTORY = "victory"
 
+
 class UIStyle:
-    BG_COLOR = (40, 35, 35)      # Dark Slate/Brown
-    BORDER_COLOR = (180, 160, 100) # Gold/Brass
-    TEXT_COLOR = (220, 220, 220) # Off-white
+    BG_COLOR = (40, 35, 35)  # Dark Slate/Brown
+    BORDER_COLOR = (180, 160, 100)  # Gold/Brass
+    TEXT_COLOR = (220, 220, 220)  # Off-white
     TITLE_FONT_SIZE = 60
     BODY_FONT_SIZE = 30
     BORDER_WIDTH = 4
