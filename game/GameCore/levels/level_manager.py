@@ -1,3 +1,6 @@
+import json
+import os
+
 from game.GameCore.entities.chest import Chest
 from game.GameCore.entities.enemy import DummyEnemy, Enemy, RangedEnemy
 from game.GameCore.entities.exit_portal import ExitPortal
@@ -5,14 +8,47 @@ from game.GameCore.entities.item import Item
 from game.GameCore.entities.merchant import Merchant
 from game.GameCore.entities.player import Player
 from game.GameCore.entities.wall import Wall
-from game.GameCore.levels.level_definitions import LEVELS
 
 
 class LevelManager:
     def __init__(self):
-        self.levels = LEVELS
-        self.current_level = 0
-        self.max_level = len(LEVELS)
+        self.levels = {}
+        self.load_levels()
+
+        if 0 in self.levels:
+            self.current_level = 0
+        elif len(self.levels) > 0:
+            # Sort keys and pick the first one (e.g., converts [5] to start at 5)
+            self.current_level = min(self.levels.keys())
+            print(f"Level 0 not found. Starting at Level {self.current_level}")
+        else:
+            print("CRITICAL ERROR: No levels found in levels.json!")
+            self.current_level = 0
+
+            # Update max level based on keys found
+        self.max_level = max(self.levels.keys()) if self.levels else 0
+
+    def load_levels(self):
+        """Loads levels from levels.json"""
+        try:
+            # Build path relative to this script file
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            json_path = os.path.join(base_path, "base_levels.json")
+
+            with open(json_path, "r") as f:
+                raw_data = json.load(f)
+
+            # Convert string keys "0" to int 0, and lists to tuples
+            for key, data in raw_data.items():
+                level_id = int(key)
+                self.levels[level_id] = data
+
+        except FileNotFoundError:
+            print("ERROR: levels.json not found!")
+            self.levels = {}
+        except Exception as e:
+            print(f"ERROR loading levels: {e}")
+            self.levels = {}
 
     def get_level(self, level_number):
         return self.levels.get(level_number)
@@ -27,15 +63,16 @@ class LevelManager:
         return False
 
     def reset_to_level(self, level_number):
-        if 1 <= level_number <= self.max_level:
+        if 0 <= level_number <= self.max_level:
             self.current_level = level_number
             return True
         return False
 
     def create_level_entities(self, level_data):
         # Create player
-        player_data = level_data["player_start"]
-        player = Player(player_data[0], player_data[1])
+        # JSON lists [r,c] need to be accessed by index, just like tuples
+        p_pos = level_data["player_start"]
+        player = Player(p_pos[0], p_pos[1])
 
         # Apply starting equipment
         start_equip = level_data.get("start_equipment", [])
@@ -47,8 +84,9 @@ class LevelManager:
         # Create walls
         walls = []
         for wall_pos in level_data.get("walls", []):
-            wall = Wall(wall_pos[0], wall_pos[1])
-            walls.append(wall)
+            # Ensure coordinates are integers
+            w_r, w_c = int(wall_pos[0]), int(wall_pos[1])
+            walls.append(Wall(w_r, w_c))
 
         # Create enemies
         enemies = []
@@ -56,7 +94,6 @@ class LevelManager:
             pos = enemy_def["position"]
             e_type = enemy_def["type"]
 
-            # --- UPDATE THIS BLOCK ---
             if e_type == "ranged":
                 enemy = RangedEnemy(pos[0], pos[1])
             elif e_type == "dummy":
@@ -68,9 +105,10 @@ class LevelManager:
         # Create items
         items = []
         for item_def in level_data.get("items", []):
+            pos = item_def["position"]
             item = Item(
-                item_def["position"][0],
-                item_def["position"][1],
+                pos[0],
+                pos[1],
                 item_def["type"],
                 item_def.get("value", 1),
             )
@@ -79,9 +117,10 @@ class LevelManager:
         # Create chests
         chests = []
         for chest_def in level_data.get("chests", []):
+            pos = chest_def["position"]
             chest = Chest(
-                chest_def["position"][0],
-                chest_def["position"][1],
+                pos[0],
+                pos[1],
                 chest_def["contents"],
             )
             chests.append(chest)
@@ -95,8 +134,8 @@ class LevelManager:
         # Create merchant
         merchant = None
         if "merchant" in level_data:
-            merchant_pos = level_data["merchant"]
-            merchant = Merchant(merchant_pos[0], merchant_pos[1])
+            merch_pos = level_data["merchant"]
+            merchant = Merchant(merch_pos[0], merch_pos[1])
 
         return player, walls, enemies, items, chests, exit_portal, merchant
 

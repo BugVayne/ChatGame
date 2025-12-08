@@ -302,6 +302,13 @@ class RangedEnemy(Enemy):
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
 
+    def draw(self, screen):
+        super().draw(screen)
+
+        center_x = self.visual_x + self.cell_size // 2
+        center_y = self.visual_y + self.cell_size // 2
+        pygame.draw.circle(screen, (255, 50, 50), (center_x, center_y - 30), 10, 3)
+
 
 class DummyEnemy(Enemy):
     def __init__(self, row, col):
