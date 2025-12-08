@@ -1,5 +1,35 @@
 LEVELS = {
+    0: {
+        "name": "TESTING GROUND",
+        "grid_width": 12,
+        "grid_height": 8,
+        "player_start": (1, 1),
+        "walls": [
+            # Simple box border
+            *[(0, col) for col in range(12)],
+            *[(7, col) for col in range(12)],
+            *[(row, 0) for row in range(8)],
+            *[(row, 11) for row in range(8)],
+        ],
+        "items": [
+            # All items lined up in a row
+            {"type": "health", "position": (2, 2)},
+            {"type": "coin", "position": (2, 3), "value": 50},
+            {"type": "arrows_item", "position": (2, 4), "value": 10},
+            {"type": "sword", "position": (2, 5)},
+            {"type": "bow", "position": (2, 6)},
+        ],
+        "chests": [{"position": (4, 2), "contents": {"coins": 100, "health": 5}}],
+        "merchant": (4, 4),
+        "enemies": [
+            # A specialized "dummy" enemy
+            {"type": "dummy", "position": (4, 8)}
+        ],
+        "exit": (6, 10),
+        "completion_condition": "find_exit",
+    },
     1: {
+        "start_equipment": ["bow", "sword"],
         "name": "Dungeon Entrance",
         "grid_width": 12,
         "grid_height": 8,
@@ -22,17 +52,17 @@ LEVELS = {
             (6, 3),
         ],
         "enemies": [
-            {"type": "melee", "position": (3, 3)},
             {"type": "melee", "position": (6, 6)},
         ],
         "items": [
             {"type": "health", "position": (1, 3)},
-            {"type": "coin", "position": (2, 2), "value": 5},
-            {"type": "sword", "position": (4, 4)},
+            {"type": "coin", "position": (2, 2), "value": 10},
+            {"type": "sword", "position": (2, 2)},
+            {"type": "bow", "position": (2, 1)},
         ],
         "chests": [{"position": (6, 8), "contents": {"coins": 10, "health": 2}}],
         "exit": (6, 10),
-        "completion_condition": "defeat_enemies",  # or "find_exit"
+        "completion_condition": "find_exit",
     },
     2: {
         "name": "Archer's Corridor",
@@ -71,13 +101,13 @@ LEVELS = {
         ],
         "items": [
             {"type": "bow", "position": (2, 7)},
-            {"type": "arrow", "position": (3, 7), "value": 5},
+            {"type": "arrows_item", "position": (3, 7), "value": 5},
             {"type": "coin", "position": (7, 8), "value": 8},
             {"type": "health", "position": (8, 8)},
         ],
         "chests": [{"position": (1, 13), "contents": {"coins": 15, "arrows": 10}}],
         "exit": (8, 13),
-        "completion_condition": "defeat_enemies",
+        "completion_condition": "find_exit",
     },
     3: {
         "name": "Merchant's Hall",

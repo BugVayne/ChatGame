@@ -413,6 +413,12 @@ class GameCore:
                 entity.update_visuals(dt)
             entity.draw(self.screen)  # No args needed now
 
+        for proj in self.projectiles:
+            # You MUST call update_visuals so the arrow calculates
+            # its smooth position between tiles (visual_x, visual_y)
+            proj.update_visuals(dt)
+            proj.draw(self.screen)
+
         # Draw Projectiles (keep line drawing or make sprite)
         for proj in self.projectiles:
             proj.draw(self.screen)
@@ -646,26 +652,16 @@ class GameCore:
                 direction = command.get("direction")
                 damage = GameConfig.PLAYER_BASE_DAMAGE
 
-                # Calculate spawn position (1 tile in front of player)
-                spawn_r, spawn_c = self.player.row, self.player.col
-
-                if direction == "up":
-                    spawn_r -= 1
-
-                elif direction == "down":
-                    spawn_r += 1
-
-                elif direction == "left":
-                    spawn_c -= 1
-
-                elif direction == "right":
-                    spawn_c += 1
+                self.player.attack_bow(direction, self.enemies, self.walls)
 
                 # Check if spawn point is valid
-                if 0 <= spawn_r < self.grid_height and 0 <= spawn_c < self.grid_width:
+                if (
+                    0 <= self.player.row < self.grid_height
+                    and 0 <= self.player.col < self.grid_width
+                ):
 
                     self.player.inventory["arrows"] -= 1
-                    target_obj = self.grid[spawn_r][spawn_c]
+                    target_obj = self.grid[self.player.row][self.player.col]
 
                     if target_obj and target_obj.type == "wall":
                         pass
@@ -673,11 +669,13 @@ class GameCore:
                     elif target_obj and target_obj.type == "enemy":
                         target_obj.take_damage(damage)
                         if not target_obj.is_alive():
-                            self.grid[spawn_r][spawn_c] = None
+                            self.grid[self.player.row][self.player.col] = None
                             self.enemies.remove(target_obj)
 
                     else:
-                        proj = Projectile(spawn_r, spawn_c, direction, damage)
+                        proj = Projectile(
+                            self.player.row, self.player.col, direction, damage
+                        )
                         self.projectiles.append(proj)
                     self.execute_turn()
                     result["message"] = "Arrow shot"

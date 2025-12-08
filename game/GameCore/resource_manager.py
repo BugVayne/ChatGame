@@ -62,6 +62,7 @@ class ResourceManager:
         bow_img = [self.load_image("bow.png")]
         arrow_img = [self.load_image("arrow.png")]
         chest_closed_img = [self.load_image("chest_closed.png")]
+        arrows_item_img = [self.load_image("arrows_item.png")]
 
         chest_idle_anim = self.load_frames("chest_idle", 5)  # unused
         heal_potion_anim = self.load_frames("heal_potion_idle", 8)  # unused
@@ -94,7 +95,9 @@ class ResourceManager:
             "health": heal_potion_anim,
             "sword": sword_img,
             "bow": bow_img,
-            "arrow": arrow_img,
+            "arrow_idle": arrow_img,
+            "arrow_run": arrow_img,
+            "arrows_item": arrows_item_img,
         }
 
     def create_surface(self, color, width=64, height=64, circle=False):

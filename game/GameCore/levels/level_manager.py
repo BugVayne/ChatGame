@@ -1,5 +1,5 @@
 from game.GameCore.entities.chest import Chest
-from game.GameCore.entities.enemy import Enemy, RangedEnemy
+from game.GameCore.entities.enemy import DummyEnemy, Enemy, RangedEnemy
 from game.GameCore.entities.exit_portal import ExitPortal
 from game.GameCore.entities.item import Item
 from game.GameCore.entities.merchant import Merchant
@@ -11,7 +11,7 @@ from game.GameCore.levels.level_definitions import LEVELS
 class LevelManager:
     def __init__(self):
         self.levels = LEVELS
-        self.current_level = 1
+        self.current_level = 0
         self.max_level = len(LEVELS)
 
     def get_level(self, level_number):
@@ -54,8 +54,13 @@ class LevelManager:
         enemies = []
         for enemy_def in level_data.get("enemies", []):
             pos = enemy_def["position"]
-            if enemy_def["type"] == "ranged":
+            e_type = enemy_def["type"]
+
+            # --- UPDATE THIS BLOCK ---
+            if e_type == "ranged":
                 enemy = RangedEnemy(pos[0], pos[1])
+            elif e_type == "dummy":
+                enemy = DummyEnemy(pos[0], pos[1])
             else:
                 enemy = Enemy(pos[0], pos[1], "melee")
             enemies.append(enemy)
@@ -96,8 +101,6 @@ class LevelManager:
         return player, walls, enemies, items, chests, exit_portal, merchant
 
     def is_level_complete(self, player, enemies, exit_portal, level_data):
-        # The level is complete ONLY if the player stands on the exit portal
-        # The state of enemies does not matter
         if (
             exit_portal
             and player.row == exit_portal.row

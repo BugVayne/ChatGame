@@ -65,6 +65,14 @@ class GameObject:
         self.animation_timer = 0
         self.locked_animation_timer = duration_ms
 
+        frames = self.resources.get_animation(key_name)
+
+        if frames and len(frames) > 0:
+
+            self.animation_speed = duration_ms / len(frames)
+        else:
+            self.animation_speed = 150  # Default fallback
+
     def draw_health_bar(self, screen, x, y, cell_size, current_health, max_health):
         health_width = (current_health / max_health) * (cell_size - 10)
         pygame.draw.rect(screen, (255, 0, 0), (x + 5, y + 5, cell_size - 10, 5))
@@ -73,13 +81,9 @@ class GameObject:
     def update_visuals(self, dt):
         """Called every frame to smooth movement and update animation"""
 
-        # --- 1. SMOOTH MOVEMENT LOGIC (Ease-In-Out) ---
-
-        # Calculate where we SHOULD be physically
         dest_x = self.col * self.cell_size
         dest_y = self.row * self.cell_size
 
-        # Detect if a NEW movement command just happened
         if dest_x != self.target_visual_x or dest_y != self.target_visual_y:
             self.start_visual_x = self.visual_x
             self.start_visual_y = self.visual_y
@@ -88,17 +92,14 @@ class GameObject:
             self.move_timer = 0
             self.is_moving = True
 
-            # Face direction immediately upon input
             if dest_x > self.start_visual_x:
                 self.facing_right = True
             elif dest_x < self.start_visual_x:
                 self.facing_right = False
 
-        # Apply Interpolation if moving
         if self.is_moving:
             self.move_timer += dt
 
-            # Calculate percentage of completion (0.0 to 1.0)
             t = self.move_timer / self.move_duration
 
             if t >= 1.0:
@@ -107,11 +108,9 @@ class GameObject:
                 self.visual_y = self.target_visual_y
                 self.is_moving = False
             else:
-                # --- SMOOTHSTEP FORMULA ---
-                # This creates the "Slow Start, Fast Middle, Slow End" curve
+
                 smooth_t = t * t * (3 - 2 * t)
 
-                # Lerp: Start + (End - Start) * smooth_t
                 self.visual_x = (
                     self.start_visual_x
                     + (self.target_visual_x - self.start_visual_x) * smooth_t
@@ -121,9 +120,6 @@ class GameObject:
                     + (self.target_visual_y - self.start_visual_y) * smooth_t
                 )
 
-        # --- 2. ANIMATION LOGIC ---
-
-        # Handle Locked Animations (Attack/Hurt)
         if hasattr(self, "locked_animation_timer") and self.locked_animation_timer > 0:
             self.locked_animation_timer -= dt
 
@@ -131,17 +127,24 @@ class GameObject:
             if self.animation_timer >= self.animation_speed:
                 self.animation_timer = 0
                 frames = self.resources.get_animation(self.animation_key)
-                if frames and self.frame_index < len(frames) - 1:
-                    self.frame_index += 1
+
+                # Check bounds to ensure we don't crash if frames are missing
+                if frames:
+                    # Increment frame, but clamp to the last frame so it holds the pose
+                    # if the timer is slightly off, rather than looping back to 0
+                    if self.frame_index < len(frames) - 1:
+                        self.frame_index += 1
 
             # Unlock when done
             if self.locked_animation_timer <= 0:
                 self.animation_timer = 0
                 self.frame_index = 0
+                self.animation_speed = (
+                    150  # <--- ADD THIS: Reset speed to default for idle/run
+                )
             else:
                 return  # Skip standard logic
 
-        # Handle Standard Animations (Run/Idle)
         prev_key = self.animation_key
 
         if self.is_moving:
@@ -165,7 +168,6 @@ class GameObject:
     def draw(self, screen):
         frames = self.resources.get_animation(self.animation_key)
 
-        # Safety check
         if not frames:
             return
         if self.frame_index >= len(frames):
@@ -173,15 +175,12 @@ class GameObject:
 
         image = frames[self.frame_index]
 
-        # Flip image if facing left
         if not self.facing_right:
             image = pygame.transform.flip(image, True, False)
 
-        # Scale to cell size if needed
         if image.get_width() != self.cell_size:
             image = pygame.transform.scale(image, (self.cell_size, self.cell_size))
 
-        # Draw Shadow
         shadow_rect = pygame.Rect(
             self.visual_x + 10,
             self.visual_y + self.cell_size - 10,
@@ -190,7 +189,6 @@ class GameObject:
         )
         pygame.draw.ellipse(screen, (0, 0, 0, 100), shadow_rect)
 
-        # Draw Sprite
         screen.blit(image, (self.visual_x, self.visual_y))
 
         if (

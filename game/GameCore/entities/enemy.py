@@ -285,3 +285,24 @@ class RangedEnemy(Enemy):
         super().update_cooldowns()
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
+
+
+class DummyEnemy(Enemy):
+    def __init__(self, row, col):
+        # High health so you can practice hitting it multiple times
+        super().__init__(row, col, "dummy", health=1000, damage=0)
+
+    def move_towards_player(self, *args, **kwargs):
+        # Override to do nothing
+        return True
+
+    def attack(self, player):
+        # Override to do nothing
+        return False
+
+    def draw(self, screen):
+        super().draw(screen)
+        # Optional: Draw a "Target" symbol on top to distinguish it
+        center_x = self.visual_x + self.cell_size // 2
+        center_y = self.visual_y + self.cell_size // 2
+        pygame.draw.circle(screen, (255, 255, 255), (center_x, center_y), 8, 2)

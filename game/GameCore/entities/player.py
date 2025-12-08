@@ -11,7 +11,7 @@ class Player(GameObject):
         self.has_sword = False
         self.has_bow = False
         self.dash_cooldown = 0
-        self.inventory = {"health": 2, "arrows": 5}
+        self.inventory = {"health": 2, "arrows": 50}
 
     def move(self, direction, grid, grid_width, grid_height):
         new_row, new_col = self.row, self.col
@@ -180,19 +180,19 @@ class Player(GameObject):
                 if wall.row == check_row and wall.col == check_col:
                     return {"type": "wall", "position": (check_row, check_col)}
 
-            # Check enemies
-            for enemy in enemies:
-                if (
-                    enemy.is_alive()
-                    and enemy.row == check_row
-                    and enemy.col == check_col
-                ):
-                    enemy.take_damage(damage)
-                    return {
-                        "type": "enemy",
-                        "enemy": enemy,
-                        "position": (check_row, check_col),
-                    }
+            # # Check enemies
+            # for enemy in enemies:
+            #     if (
+            #         enemy.is_alive()
+            #         and enemy.row == check_row
+            #         and enemy.col == check_col
+            #     ):
+            #         enemy.take_damage(damage)
+            #         return {
+            #             "type": "enemy",
+            #             "enemy": enemy,
+            #             "position": (check_row, check_col),
+            #         }
 
         return None
 
