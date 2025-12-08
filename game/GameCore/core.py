@@ -543,67 +543,243 @@ class GameCore:
         return False
 
     def draw_ui(self):
-        # Player stats
-        health_text = self.font.render(
-            f"Health: {self.player.health}/{self.player.max_health}",
-            True,
-            GameConfig.COLORS["ui_text"],
-        )
-        self.screen.blit(health_text, (10, 10))
+        """Draws the HUD: Inventory at Top-Left, Status at Bottom-Left"""
 
-        coins_text = self.small_font.render(
-            f"Coins: {self.player.coins}", True, (255, 215, 0)
-        )
-        self.screen.blit(coins_text, (10, 50))
+        # --- UI CONSTANTS ---
+        margin = 20
 
-        # Equipment
-        sword_status = "Equipped" if self.player.has_sword else "None"
-        bow_status = "Equipped" if self.player.has_bow else "None"
-        equipment_text = self.small_font.render(
-            f"Sword: {sword_status} | Bow: {bow_status} | Arrows: {self.player.inventory['arrows']}",
-            True,
-            GameConfig.COLORS["ui_secondary"],
-        )
-        self.screen.blit(equipment_text, (10, 80))
+        # Inventory Settings
+        slot_size = 50
+        slot_padding = 10
+        inv_start_x = margin
+        inv_start_y = margin
 
-        # Inventory
-        inventory_text = self.small_font.render(
-            f"Health Potions: {self.player.inventory['health']}",
-            True,
-            GameConfig.COLORS["ui_secondary"],
-        )
-        self.screen.blit(inventory_text, (10, 110))
+        # Player Portrait Settings
+        portrait_size = 80
+        status_y = self.screen_height - margin - portrait_size
+        status_x = margin
 
-        # Dash cooldown
-        dash_text = self.small_font.render(
-            f"Dash: {'Ready' if self.player.dash_cooldown == 0 else f'{self.player.dash_cooldown} turns'}",
-            True,
-            (0, 200, 255) if self.player.dash_cooldown == 0 else (150, 150, 150),
-        )
-        self.screen.blit(dash_text, (10, 140))
+        # ==================================================
+        # 1. TOP LEFT: INVENTORY ROW
+        # ==================================================
+        inventory_items = [
+            {
+                "key": "coin",
+                "amount": self.player.coins,
+                "stackable": True,
+                "owned": True,
+            },
+            {
+                "key": "health",
+                "amount": self.player.inventory.get("health", 0),
+                "stackable": True,
+                "owned": True,
+            },
+            {
+                "key": "arrows_item",
+                "amount": self.player.inventory.get("arrows", 0),
+                "stackable": True,
+                "owned": True,
+            },
+            {
+                "key": "sword",
+                "amount": 1,
+                "stackable": False,
+                "owned": self.player.has_sword,
+            },
+            {
+                "key": "bow",
+                "amount": 1,
+                "stackable": False,
+                "owned": self.player.has_bow,
+            },
+        ]
 
-        # Level info
-        level_data = self.level_manager.get_current_level()
-        level_text = self.small_font.render(
-            f"Level {self.level_manager.current_level}: {level_data['name']}",
-            True,
-            (200, 200, 0),
-        )
-        self.screen.blit(level_text, (10, 170))
-
-        # Completion condition
-        condition_text = self.small_font.render(
-            "Goal: Find and Enter the Portal", True, (200, 200, 0)
-        )
-        self.screen.blit(condition_text, (10, 200))
-
-        # Game completed message
-        if self.game_completed:
-            completed_text = self.font.render("ESCAPE SUCCESSFUL!", True, (0, 255, 0))
-            text_rect = completed_text.get_rect(
-                center=(self.screen_width // 2, self.screen_height // 2)
+        current_x = inv_start_x
+        for item in inventory_items:
+            self.draw_inventory_slot(
+                current_x,
+                inv_start_y,
+                slot_size,
+                item["key"],
+                item["amount"],
+                item["stackable"],
+                item["owned"],
             )
-            self.screen.blit(completed_text, text_rect)
+            current_x += slot_size + slot_padding
+
+        # ==================================================
+        # 2. BOTTOM LEFT: PLAYER STATUS
+        # ==================================================
+
+        # --- A. PORTRAIT (ZOOMED) ---
+        portrait_rect = pygame.Rect(status_x, status_y, portrait_size, portrait_size)
+        pygame.draw.rect(self.screen, (40, 40, 50), portrait_rect)
+        pygame.draw.rect(self.screen, (200, 200, 200), portrait_rect, 3)
+
+        frames = self.resource_manager.get_animation("player_idle")
+        if frames:
+            original_img = frames[0]
+            w, h = original_img.get_size()
+            crop_size = min(w, h) // 2
+            crop_x = (w - crop_size) // 2
+            crop_y = 5
+            crop_rect = pygame.Rect(crop_x, crop_y, crop_size, crop_size)
+
+            try:
+                face_subsurface = original_img.subsurface(crop_rect)
+                target_size = portrait_size - 6
+                zoomed_img = pygame.transform.scale(
+                    face_subsurface, (target_size, target_size)
+                )
+                center_x = status_x + (portrait_size - target_size) // 2
+                center_y = status_y + (portrait_size - target_size) // 2
+                self.screen.blit(zoomed_img, (center_x, center_y))
+            except ValueError:
+                scale_size = int(portrait_size * 0.8)
+                img = pygame.transform.scale(original_img, (scale_size, scale_size))
+                center_x = status_x + (portrait_size - scale_size) // 2
+                center_y = status_y + (portrait_size - scale_size) // 2
+                self.screen.blit(img, (center_x, center_y))
+
+        # --- B. HEALTH BAR ---
+        bar_x = status_x + portrait_size + 15
+        bar_y = status_y + 5  # Align near top of portrait
+        bar_width = 200
+        bar_height = 25
+
+        pygame.draw.rect(self.screen, (80, 0, 0), (bar_x, bar_y, bar_width, bar_height))
+        if self.player.max_health > 0:
+            health_pct = self.player.health / self.player.max_health
+            fill_width = int(bar_width * health_pct)
+            pygame.draw.rect(
+                self.screen, (0, 200, 50), (bar_x, bar_y, fill_width, bar_height)
+            )
+        pygame.draw.rect(
+            self.screen, (200, 200, 200), (bar_x, bar_y, bar_width, bar_height), 2
+        )
+
+        hp_text = self.small_font.render(
+            f"{self.player.health}/{self.player.max_health}", True, (255, 255, 255)
+        )
+        text_rect = hp_text.get_rect(
+            center=(bar_x + bar_width // 2, bar_y + bar_height // 2)
+        )
+        self.screen.blit(hp_text, text_rect)
+
+        # --- C. DASH SLOT (UPDATED) ---
+        dash_size = 45
+        dash_x = bar_x
+        dash_y = bar_y + bar_height + 10  # Below health bar
+
+        dash_rect = pygame.Rect(dash_x, dash_y, dash_size, dash_size)
+
+        # Background
+        pygame.draw.rect(self.screen, (40, 40, 50), dash_rect)
+
+        # Border (Cyan if ready, Gray if cooldown)
+        border_col = (
+            (0, 255, 255) if self.player.dash_cooldown == 0 else (100, 100, 100)
+        )
+        pygame.draw.rect(self.screen, border_col, dash_rect, 2)
+
+        # Draw Icon
+        # Note: Ensure 'dash_icon' exists in ResourceManager, or it will fallback
+        dash_frames = self.resource_manager.get_animation("dash_icon")
+        if dash_frames:
+            icon = dash_frames
+            icon_s = int(dash_size * 0.8)
+            icon_scaled = pygame.transform.scale(icon, (icon_s, icon_s))
+
+            icon_center_x = dash_x + (dash_size - icon_s) // 2
+            icon_center_y = dash_y + (dash_size - icon_s) // 2
+            self.screen.blit(icon_scaled, (icon_center_x, icon_center_y))
+
+        # Draw COOLDOWN OVERLAY (Shadow + Number)
+        if self.player.dash_cooldown > 0:
+            # 1. Shadow Overlay (Semi-transparent black)
+            overlay = pygame.Surface((dash_size, dash_size), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))  # 180 = transparency alpha
+            self.screen.blit(overlay, (dash_x, dash_y))
+
+            # 2. Cooldown Number
+            cd_text = self.font.render(
+                str(self.player.dash_cooldown), True, (255, 255, 255)
+            )
+            cd_rect = cd_text.get_rect(center=dash_rect.center)
+            self.screen.blit(cd_text, cd_rect)
+
+        # Optional: Label text next to the box
+        label_surf = self.small_font.render("Dash", True, border_col)
+        self.screen.blit(label_surf, (dash_x + dash_size + 10, dash_y + 15))
+
+        # ==================================================
+        # 3. OTHER HUD
+        # ==================================================
+        level_data = self.level_manager.get_current_level()
+        lvl_str = f"Level {self.level_manager.current_level}: {level_data['name']}"
+        lvl_surf = self.small_font.render(lvl_str, True, (255, 215, 0))  # Gold color
+
+        # Position: Top Right with margin
+        lvl_x = self.screen_width - lvl_surf.get_width() - 20
+        lvl_y = 20
+        self.screen.blit(lvl_surf, (lvl_x, lvl_y))
+
+        # 2. Turn Counter (Below Level Name)
+        turn_str = f"Turn: {self.turn_count}"
+        turn_surf = self.small_font.render(
+            turn_str, True, (200, 200, 200)
+        )  # Light Gray
+
+        # Position: Aligned Right, below Level text
+        turn_x = self.screen_width - turn_surf.get_width() - 20
+        turn_y = lvl_y + lvl_surf.get_height() + 5  # 5px padding
+        self.screen.blit(turn_surf, (turn_x, turn_y))
+
+    def draw_inventory_slot(self, x, y, size, img_key, amount, is_stackable, is_owned):
+        """Helper to draw a single UI box (Used by Top-Left Inventory)"""
+
+        box_rect = pygame.Rect(x, y, size, size)
+
+        # Background
+        pygame.draw.rect(self.screen, (40, 40, 50, 200), box_rect)
+
+        # Border
+        border_color = (200, 200, 200) if is_owned else (80, 80, 80)
+        pygame.draw.rect(self.screen, border_color, box_rect, 2)
+
+        if is_owned:
+            frames = self.resource_manager.get_animation(img_key)
+            if frames:
+                original_img = frames[0]
+                icon_size = int(size * 0.7)
+                icon_img = pygame.transform.scale(original_img, (icon_size, icon_size))
+
+                center_x = x + (size - icon_size) // 2
+                center_y = y + (size - icon_size) // 2
+                self.screen.blit(icon_img, (center_x, center_y))
+
+            if is_stackable:
+                count_str = str(amount)
+                # Shadow
+                shadow_surf = self.small_font.render(count_str, True, (0, 0, 0))
+                shadow_rect = shadow_surf.get_rect(
+                    bottomright=(x + size - 3, y + size - 3)
+                )
+                self.screen.blit(shadow_surf, (shadow_rect.x + 1, shadow_rect.y + 1))
+                # Red Text
+                text_surf = self.small_font.render(count_str, True, (255, 50, 50))
+                text_rect = text_surf.get_rect(bottomright=(x + size - 3, y + size - 3))
+                self.screen.blit(text_surf, text_rect)
+        else:
+            # Locked diagonal line
+            pygame.draw.line(
+                self.screen,
+                (60, 60, 60),
+                (x + 5, y + 5),
+                (x + size - 5, y + size - 5),
+                1,
+            )
 
     def execute_command(self, command):
         action = command.get("action")

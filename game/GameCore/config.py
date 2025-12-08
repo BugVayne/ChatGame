@@ -30,7 +30,7 @@ class GameConfig:
     # Item effects
     HEALTH_POTION_HEAL = 50
     DASH_DISTANCE = 3
-    DASH_COOLDOWN = 3
+    DASH_COOLDOWN = 6
 
     # Colors
     COLORS = {

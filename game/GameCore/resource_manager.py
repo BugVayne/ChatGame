@@ -100,6 +100,7 @@ class ResourceManager:
             "arrow_idle": arrow_img,
             "arrow_run": arrow_img,
             "arrows_item": arrows_item_img,
+            "dash_icon": self.load_image("dash_icon.png"),
         }
 
     def create_surface(self, color, width=64, height=64, circle=False):
