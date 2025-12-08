@@ -25,13 +25,12 @@ class GameConfig:
 
     # Weapon settings
     SWORD_RANGE = 2
-    BOW_RANGE = 7
-    HEALTH_UPGRADE_COST = [20, 40]
+    BOW_RANGE = 8
 
     # Item effects
-    HEALTH_POTION_HEAL = 25
+    HEALTH_POTION_HEAL = 50
     DASH_DISTANCE = 3
-    DASH_COOLDOWN = 3  # turns
+    DASH_COOLDOWN = 3
 
     # Colors
     COLORS = {

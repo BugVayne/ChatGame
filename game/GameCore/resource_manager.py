@@ -46,26 +46,27 @@ class ResourceManager:
 
         player_idle_anim = self.load_frames("player_idle", 6)
         player_run_anim = self.load_frames("player_walk", 8)
-        player_sword_anim = self.load_frames("player_attack", 6)  # unused
-        player_bow_anim = self.load_frames("player_bow_attack", 9)  # unused
-        player_death_anim = self.load_frames("player_death", 4)  # unused
-        player_hurt_anim = self.load_frames("player_hurt", 4)  # unused
+        player_sword_anim = self.load_frames("player_attack", 6)
+        player_bow_anim = self.load_frames("player_bow_attack", 9)
+        player_death_anim = self.load_frames("player_death", 4)
+        player_hurt_anim = self.load_frames("player_hurt", 4)
 
         enemy_idle_anim = self.load_frames("enemy_idle", 6)
         enemy_run_anim = self.load_frames("enemy_walk", 8)
-        enemy_death_anim = self.load_frames("enemy_death", 4)  # unused
-        enemy_hurt_anim = self.load_frames("enemy_hurt", 4)  # unused
+        enemy_death_anim = self.load_frames("enemy_death", 4)
+        enemy_hurt_anim = self.load_frames("enemy_hurt", 4)
+        enemy_attack_anim = self.load_frames("enemy_attack", 6)
 
-        shopkeeper_idle_anim = self.load_frames("shopkeeper_idle", 9)  # unused
+        shopkeeper_idle_anim = self.load_frames("shopkeeper_idle", 9)
 
         sword_img = [self.load_image("sword.png")]
         bow_img = [self.load_image("bow.png")]
         arrow_img = [self.load_image("arrow.png")]
-        chest_closed_img = [self.load_image("chest_closed.png")]
+        chest_opened_img = [self.load_image("chest_closed.png")]
         arrows_item_img = [self.load_image("arrows_item.png")]
 
-        chest_idle_anim = self.load_frames("chest_idle", 5)  # unused
-        heal_potion_anim = self.load_frames("heal_potion_idle", 8)  # unused
+        chest_idle_anim = self.load_frames("chest_idle", 5)
+        heal_potion_anim = self.load_frames("heal_potion_idle", 8)
         portal_anim = self.load_frames("portal_idle", 6)
 
         coin_anim = self.load_frames("coin_idle", 4)
@@ -83,11 +84,12 @@ class ResourceManager:
             "enemy_idle": enemy_idle_anim,
             "enemy_run": enemy_run_anim,
             "enemy_death": enemy_death_anim,
+            "enemy_attack": enemy_attack_anim,
             # NPC
             "merchant_idle": shopkeeper_idle_anim,
             # Objects
             "chest_closed": chest_idle_anim,
-            "chest_open": chest_closed_img,
+            "chest_open": chest_opened_img,
             "portal_idle": portal_anim,
             "wall_idle": [self.load_image("wall.png")],
             "floor": [self.load_image("floor.png")],

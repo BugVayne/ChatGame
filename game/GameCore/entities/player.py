@@ -46,14 +46,16 @@ class Player(GameObject):
         if self.dash_cooldown > 0:
             return False
 
-        # Start tracking where we will end up (initially where we are now)
-        target_row, target_col = self.row, self.col
+        # Track the last safe place we can actually stand
+        # Start at current position (in case we can't move at all)
+        last_valid_row, last_valid_col = self.row, self.col
+
+        # Temp variables for checking ahead
+        check_row, check_col = self.row, self.col
         distance = GameConfig.DASH_DISTANCE
 
         for _ in range(distance):
-            # 1. Calculate the coordinate we WANT to step into
-            check_row, check_col = target_row, target_col
-
+            # 1. Calculate the coordinate of the next step
             if direction == "up":
                 check_row -= 1
             elif direction == "down":
@@ -67,23 +69,29 @@ class Player(GameObject):
             if not (0 <= check_row < grid_height and 0 <= check_col < grid_width):
                 break  # Hit edge of map
 
-            # 3. Check for Obstacles
+            # 3. Check Grid Content
             cell_content = grid[check_row][check_col]
 
-            # If there is something there...
+            # BLOCKING LOGIC:
             if cell_content is not None:
-                # ...and it is a solid object, STOP.
-                # Note: Items are 'walkable', so we don't stop for them.
-                if cell_content.type in ["wall", "enemy", "chest", "merchant"]:
+                # A. WALLS: Hard stop. The dash ends immediately.
+                if cell_content.type == "wall":
                     break
 
-                    # 4. If we made it here, the step is safe. Update our target.
-            target_row, target_col = check_row, check_col
+                # B. ENEMIES / SOLIDS:
+                # We can pass THROUGH them, but we cannot LAND on them.
+                # So we continue the loop, but we DO NOT update 'last_valid_row/col'
+                if cell_content.type in ["enemy", "chest", "merchant"]:
+                    continue
 
-        # 5. Apply the move ONLY if the target is different from start
-        if target_row != self.row or target_col != self.col:
+            # 4. If we are here, the tile is either None (Empty) or "item" (Walkable)
+            # This is a valid spot to land.
+            last_valid_row, last_valid_col = check_row, check_col
+
+        # 5. Apply the move ONLY if we found a new valid spot
+        if last_valid_row != self.row or last_valid_col != self.col:
             grid[self.row][self.col] = None  # Remove player from old spot
-            self.row, self.col = target_row, target_col  # Update coords
+            self.row, self.col = last_valid_row, last_valid_col  # Update coords
             grid[self.row][self.col] = self  # Place player in new spot
 
             self.dash_cooldown = GameConfig.DASH_COOLDOWN
@@ -179,20 +187,6 @@ class Player(GameObject):
             for wall in walls:
                 if wall.row == check_row and wall.col == check_col:
                     return {"type": "wall", "position": (check_row, check_col)}
-
-            # # Check enemies
-            # for enemy in enemies:
-            #     if (
-            #         enemy.is_alive()
-            #         and enemy.row == check_row
-            #         and enemy.col == check_col
-            #     ):
-            #         enemy.take_damage(damage)
-            #         return {
-            #             "type": "enemy",
-            #             "enemy": enemy,
-            #             "position": (check_row, check_col),
-            #         }
 
         return None
 

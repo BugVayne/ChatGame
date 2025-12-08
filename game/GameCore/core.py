@@ -406,6 +406,21 @@ class GameCore:
         all_entities.extend(self.chests)
         all_entities.append(self.player)
 
+        for enemy in self.enemies[:]:  # Iterate over a copy
+            if not enemy.is_alive():
+                # 1. Remove from Grid
+                if (
+                    0 <= enemy.row < self.grid_height
+                    and 0 <= enemy.col < self.grid_width
+                ):
+                    # Only remove if this specific enemy is actually in that cell
+                    # (Prevents clearing a cell if another enemy moved into it)
+                    if self.grid[enemy.row][enemy.col] == enemy:
+                        self.grid[enemy.row][enemy.col] = None
+
+                # 2. Remove from List
+                self.enemies.remove(enemy)
+
         # Draw them
         for entity in all_entities:
             # Make sure entity has the update_visuals method

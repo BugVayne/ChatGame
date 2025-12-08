@@ -27,9 +27,39 @@ class Enemy(GameObject):
         self.ai_state = EnemyState.IDLE
         self.recovery_cooldown = 0
 
+        # New flag to handle death animation delay
+        self.is_dying = False
+
     def update_cooldowns(self):
         if self.recovery_cooldown > 0:
             self.recovery_cooldown -= 1
+
+    def take_damage(self, amount):
+        """Override to handle death animation"""
+        if self.is_dying:
+            return  # Already dying, ignore
+
+        self.health = max(0, self.health - amount)
+
+        if self.health <= 0:
+            self.is_dying = True
+            # Play death animation for 600ms
+            self.play_animation("enemy_death", 500)
+        else:
+            # Play hurt animation for 300ms
+            self.play_animation("enemy_hurt", 300)
+
+    def is_alive(self):
+        """
+        Override: Returns True if health > 0 OR if the death animation
+        is still playing. This prevents GameCore from removing the
+        sprite instantly.
+        """
+        if not self.is_dying:
+            return self.health > 0
+
+        # If dying, we are 'alive' only until the animation finishes
+        return self.locked_animation_timer > 0
 
     def can_see_player(self, player, walls):
         # 1. Check distance
@@ -70,55 +100,38 @@ class Enemy(GameObject):
         return True
 
     def find_path_bfs(self, target_node, grid, grid_width, grid_height):
-        """Returns the next step (row, col) to reach target using BFS"""
         start = (self.row, self.col)
         queue = deque([start])
         came_from = {start: None}
-
         target_pos = (target_node.row, target_node.col)
-
         found = False
 
         while queue:
             current = queue.popleft()
-
             if current == target_pos:
                 found = True
                 break
 
-            # Check 4 neighbors
             for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
                 next_node = (current[0] + dr, current[1] + dc)
-
-                # Bounds check
                 if 0 <= next_node[0] < grid_height and 0 <= next_node[1] < grid_width:
-                    # Obstacle check
                     cell = grid[next_node[0]][next_node[1]]
-
-                    # Walkable if empty OR it is the player (target)
                     is_walkable = (cell is None) or (next_node == target_pos)
-
                     if is_walkable and next_node not in came_from:
                         queue.append(next_node)
                         came_from[next_node] = current
 
         if found:
-            # Reconstruct path backwards
             curr = target_pos
             path = []
             while curr != start:
                 path.append(curr)
                 curr = came_from[curr]
-
-            # path is reversed (Target -> ... -> Next Step)
-            # We return the last element (which is the immediate next step)
             if path:
                 return path[-1]
-
         return None
 
     def wander(self, grid, grid_width, grid_height):
-        """Move randomly to an adjacent free tile"""
         possible_moves = []
         for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             nr, nc = self.row + dr, self.col + dc
@@ -131,13 +144,13 @@ class Enemy(GameObject):
             self.move_to(next_step, grid)
 
     def move_to(self, target_pos, grid):
-        """Execute movement to a specific cell"""
         grid[self.row][self.col] = None
         self.row, self.col = target_pos
         grid[self.row][self.col] = self
 
     def move_towards_player(self, player, grid, grid_width, grid_height, walls, items):
-        # 0. Check Recovery (Stun after attack)
+        if self.is_dying:
+            return False
         if self.recovery_cooldown > 0:
             return True
 
@@ -146,7 +159,6 @@ class Enemy(GameObject):
             self.has_detected_player = True
             self.ai_state = EnemyState.CHASE
         else:
-            # If we lost the player, go back to Idle/Wander
             self.ai_state = EnemyState.IDLE
 
         # 2. State Execution
@@ -155,14 +167,22 @@ class Enemy(GameObject):
             if next_step:
                 # If the next step is the player, ATTACK instead of moving
                 if next_step == (player.row, player.col):
+                    # Face player
+                    if player.col > self.col:
+                        self.facing_right = True
+                    elif player.col < self.col:
+                        self.facing_right = False
+
+                    # Play Animation
+                    self.play_animation("enemy_attack", 500)
+
+                    # Deal Damage
                     player.take_damage(self.damage)
-                    # Enemy pauses for 1 turn after attacking
                     self.recovery_cooldown = 2
                 else:
                     self.move_to(next_step, grid)
 
         elif self.ai_state == EnemyState.IDLE:
-            # 20% chance to move when idle
             if random.random() < 0.2:
                 self.wander(grid, grid_width, grid_height)
 
@@ -170,34 +190,18 @@ class Enemy(GameObject):
 
     def draw(self, screen):
         super().draw(screen)
-        center_x = self.visual_x + self.cell_size // 2
-        center_y = self.visual_y + self.cell_size // 2
-
-        # Debug: draw state indicator
-        color = (255, 255, 255)
-        if self.ai_state == EnemyState.CHASE:
-            color = (255, 0, 0)  # Red
-        elif self.ai_state == EnemyState.FLEE:
-            color = (0, 0, 255)  # Blue
-
-        pygame.draw.circle(screen, color, (center_x + 15, center_y - 20), 4)
-
-        if self.enemy_type == "ranged":
-            pygame.draw.circle(
-                screen, GameConfig.COLORS["ranged_enemy"], (center_x, center_y - 10), 5
-            )
 
 
 class RangedEnemy(Enemy):
     def __init__(self, row, col):
         super().__init__(row, col, "ranged", health=40, damage=8)
         self.attack_range = 5
-        self.flee_range = 2  # If player is closer than 2 tiles, run away
+        self.flee_range = 2
         self.attack_cooldown = 0
 
     def can_attack_player(self, player, walls):
-        # Ranged enemies now only attack if they are in optimal range
-        # If they are too close, they prefer to move (flee) instead of attacking
+        if self.is_dying:
+            return False
         if self.attack_cooldown > 0:
             return False
 
@@ -205,7 +209,6 @@ class RangedEnemy(Enemy):
             (self.row - player.row) ** 2 + (self.col - player.col) ** 2
         )
 
-        # Can only attack if detected, in range, AND not too close (unless trapped)
         can_shoot = (
             self.has_detected_player
             and distance <= self.attack_range
@@ -216,6 +219,9 @@ class RangedEnemy(Enemy):
         return can_shoot
 
     def move_towards_player(self, player, grid, grid_width, grid_height, walls, items):
+        if self.is_dying:
+            return False
+
         # 1. Update Detection
         if self.can_see_player(player, walls):
             self.has_detected_player = True
@@ -241,25 +247,27 @@ class RangedEnemy(Enemy):
                 self.wander(grid, grid_width, grid_height)
 
         elif self.ai_state == EnemyState.CHASE:
-            # Move CLOSER (standard BFS)
             next_step = self.find_path_bfs(player, grid, grid_width, grid_height)
             if next_step and next_step != (player.row, player.col):
                 self.move_to(next_step, grid)
 
         elif self.ai_state == EnemyState.FLEE:
-            # Move AWAY
             self.flee_from_player(player, grid, grid_width, grid_height)
 
+        elif self.ai_state == EnemyState.ATTACK:
+            # Face the player while waiting to shoot
+            if player.col > self.col:
+                self.facing_right = True
+            elif player.col < self.col:
+                self.facing_right = False
+
     def flee_from_player(self, player, grid, grid_width, grid_height):
-        """Greedy move to the neighbor that is FARTHEST from player"""
         best_move = None
         max_dist = -1
-
         current_dist = abs(self.row - player.row) + abs(self.col - player.col)
 
         for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
             nr, nc = self.row + dr, self.col + dc
-
             if 0 <= nr < grid_height and 0 <= nc < grid_width:
                 if grid[nr][nc] is None:
                     dist = abs(nr - player.row) + abs(nc - player.col)
@@ -269,13 +277,21 @@ class RangedEnemy(Enemy):
 
         if best_move:
             self.move_to(best_move, grid)
-        else:
-            # Trapped! If we can't run, try to move anywhere or just shoot
-            # Fallback to standard melee chase if trapped, so it doesn't freeze
-            pass
 
     def attack(self, player):
+        if self.is_dying:
+            return False
         if self.attack_cooldown == 0:
+            # Face player
+            if player.col > self.col:
+                self.facing_right = True
+            elif player.col < self.col:
+                self.facing_right = False
+
+            # Play Animation
+            self.play_animation("enemy_attack", 500)
+
+            # Deal Damage
             player.take_damage(self.damage)
             self.attack_cooldown = 2
             return True
@@ -289,7 +305,6 @@ class RangedEnemy(Enemy):
 
 class DummyEnemy(Enemy):
     def __init__(self, row, col):
-        # High health so you can practice hitting it multiple times
         super().__init__(row, col, "dummy", health=1000, damage=0)
 
     def move_towards_player(self, *args, **kwargs):
@@ -305,4 +320,4 @@ class DummyEnemy(Enemy):
         # Optional: Draw a "Target" symbol on top to distinguish it
         center_x = self.visual_x + self.cell_size // 2
         center_y = self.visual_y + self.cell_size // 2
-        pygame.draw.circle(screen, (255, 255, 255), (center_x, center_y), 8, 2)
+        pygame.draw.circle(screen, (255, 255, 255), (center_x, center_y - 30), 10, 3)
