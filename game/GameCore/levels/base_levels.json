@@ -45,7 +45,7 @@
     ],
     "items": [
       {"type": "health", "position": [1, 3]},
-      {"type": "coin", "position": [2, 2], "value": 10},
+      {"type": "coin", "position": [3, 3], "value": 10},
       {"type": "sword", "position": [2, 2]},
       {"type": "bow", "position": [2, 1]}
     ],
