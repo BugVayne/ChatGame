@@ -1055,7 +1055,7 @@ class GameCore:
 
             for i, btn in enumerate(buttons):
                 # Update the Rect position in place so the Controller knows where it is
-                rect_width = 250
+                rect_width = 350
                 rect_height = 50
                 btn["rect"].x = (self.screen_width // 2) - (rect_width // 2)
                 btn["rect"].y = btn_start_y + (i * 60)
