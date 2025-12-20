@@ -8,12 +8,29 @@ from game.GameCore.config import GameConfig
 class ResourceManager:
     _instance = None
 
+    def get_rotated_surface(self, surface, angle):
+        """Returns a rotated version of a surface."""
+        if angle == 0:
+            return surface
+        return pygame.transform.rotate(surface, angle)
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ResourceManager, cls).__new__(cls)
             cls._instance.sprites = {}
             cls._instance.load_default_assets()
         return cls._instance
+
+    def load_rotated_variants(self, filename):
+        """Loads an image and returns a list of 4 rotated versions (0, 90, 180, 270)"""
+        base_img = self.load_image(filename)
+        # Return 4 rotations: 0, 90, 180, 270 degrees
+        return [
+            base_img,
+            pygame.transform.rotate(base_img, 90),
+            pygame.transform.rotate(base_img, 180),
+            pygame.transform.rotate(base_img, 270),
+        ]
 
     def load_image(self, filename):
         """Loads an image from the Configured Assets Directory"""
@@ -91,8 +108,8 @@ class ResourceManager:
             "chest_closed": chest_idle_anim,
             "chest_open": chest_opened_img,
             "portal_idle": portal_anim,
-            "wall_idle": [self.load_image("wall.png")],
-            "floor": [self.load_image("floor.png")],
+            "wall_idle": self.load_rotated_variants("wall.png"),
+            "floor": self.load_rotated_variants("floor.png"),
             "coin": coin_anim,
             "health": heal_potion_anim,
             "sword": sword_img,
