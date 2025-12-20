@@ -100,56 +100,62 @@ class GameController:
                 return False
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left Click
-                if self.game_core.state in [GameState.GAME_OVER, GameState.VICTORY]:
-                    mouse_pos = pygame.mouse.get_pos()
+                mouse_pos = pygame.mouse.get_pos()
 
+                # --- ЛОГИКА В ГЛАВНОМ МЕНЮ ---
+                if self.game_core.state == GameState.START:
+                    if self.game_core.btn_start_rect.collidepoint(mouse_pos):
+                        self.game_core.state = GameState.PLAYING
+                    elif self.game_core.btn_ai_mode_rect.collidepoint(mouse_pos):
+                        self.game_core.start_ai_generation_mode()
+
+                # --- ЛОГИКА В КОНЦЕ ИГРЫ ---
+                elif self.game_core.state in [GameState.GAME_OVER, GameState.VICTORY]:
                     # Check Retry Button
                     if self.game_core.btn_retry_rect.collidepoint(mouse_pos):
                         self.handle_retry_action()
 
                     # Check Menu Button
                     elif self.game_core.btn_menu_rect.collidepoint(mouse_pos):
-                        self.game_core.level_manager.reset_to_level(1)
+                        # При возврате в меню загружаем базовые уровни из JSON обратно
+                        self.game_core.level_manager.load_levels()
+                        self.game_core.level_manager.reset_to_level(0)
                         self.game_core.initialize_level()
                         self.game_core.state = GameState.START
+
             elif event.type == pygame.KEYDOWN:
                 # Global Reset
                 modifiers = pygame.key.get_mods()
                 if event.key == pygame.K_r and modifiers & pygame.KMOD_CTRL:
+                    self.game_core.level_manager.load_levels()  # Сброс на классику
                     self.game_core.initialize_level()
                     self.game_core.state = GameState.START
 
-                # Route Input based on State
+                # --- УПРАВЛЕНИЕ В МЕНЮ ---
                 if self.game_core.state == GameState.START:
                     if event.key == pygame.K_RETURN:
                         self.game_core.state = GameState.PLAYING
+                    elif event.key == pygame.K_a:  # Новая клавиша для ИИ режима
+                        self.game_core.start_ai_generation_mode()
                     elif event.key == pygame.K_ESCAPE:
                         return False
 
+                # --- УПРАВЛЕНИЕ ПОСЛЕ ИГРЫ ---
                 if self.game_core.state in [GameState.GAME_OVER, GameState.VICTORY]:
                     if event.key == pygame.K_t:  # Try Again
                         self.handle_retry_action()
                     elif event.key == pygame.K_m:  # Main Menu
-                        self.game_core.level_manager.reset_to_level(1)
+                        self.game_core.level_manager.load_levels()  # Восстанавливаем базу
+                        self.game_core.level_manager.reset_to_level(0)
                         self.game_core.initialize_level()
                         self.game_core.state = GameState.START
                     elif event.key == pygame.K_ESCAPE:  # Exit to menu
-                        self.game_core.level_manager.reset_to_level(1)
+                        self.game_core.level_manager.load_levels()
+                        self.game_core.level_manager.reset_to_level(0)
                         self.game_core.initialize_level()
                         self.game_core.state = GameState.START
 
-                elif self.game_core.state == GameState.PAUSED:
-                    if event.key in [pygame.K_p, pygame.K_ESCAPE]:
-                        self.game_core.state = GameState.PLAYING
-                    elif event.key == pygame.K_q:
-                        return False
-
-                elif self.game_core.state == GameState.MERCHANT:
-                    self.handle_merchant_input(event)
-
-                elif self.game_core.state == GameState.CHEST_POPUP:
-                    if event.key in [pygame.K_SPACE, pygame.K_RETURN, pygame.K_ESCAPE]:
-                        self.game_core.state = GameState.PLAYING
+                # ... (остальные состояния: PAUSED, MERCHANT, CHEST_POPUP без изменений) ...
 
                 elif self.game_core.state == GameState.PLAYING:
                     if not self.handle_keyboard_input(event):

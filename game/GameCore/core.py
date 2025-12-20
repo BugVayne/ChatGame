@@ -2,6 +2,8 @@ import pygame
 
 from game.GameCore.config import GameConfig, GameState, UIStyle
 from game.GameCore.entities.projectile import Projectile
+from game.GameCore.levels.ai_generation.hybrid_generator import HybridLevelGenerator
+from game.GameCore.levels.ai_generation.neural_generator import AITrainer
 from game.GameCore.levels.level_manager import LevelManager
 from game.GameCore.resource_manager import ResourceManager
 
@@ -46,6 +48,13 @@ class GameCore:
         self.btn_retry_rect = pygame.Rect(0, 0, 0, 0)
         self.btn_menu_rect = pygame.Rect(0, 0, 0, 0)
 
+        self.ai_trainer = AITrainer()
+        self.ai_trainer.load_model()  # Пытаемся загрузить обученную модель
+        self.ai_generator = HybridLevelGenerator(self.ai_trainer)
+
+        # Ректы для кнопок меню
+        self.btn_start_rect = pygame.Rect(0, 0, 0, 0)
+        self.btn_ai_mode_rect = pygame.Rect(0, 0, 0, 0)
         self.initialize_level()
 
     def check_death(self):
@@ -53,6 +62,31 @@ class GameCore:
         if self.player.health <= 0:
             self.state = GameState.GAME_OVER
             print("Player Died")
+
+    def start_ai_generation_mode(self):
+        """Сценарий: Генерация 3-х карт и запуск их как игровых"""
+        print("Generating AI levels...")
+
+        # Создаем структуру как в JSON
+        ai_levels_package = {}
+
+        for i in range(3):
+            # Генерируем сетку с помощью ИИ
+            raw_grid = self.ai_generator.generate_with_ai()
+
+            # Конвертируем в формат уровня
+            level_json_data = self.ai_generator.convert_to_game_format(raw_grid)
+            level_json_data["name"] = f"AI Abyss: Layer {i + 1}"
+
+            # Сохраняем под строковыми ключами "0", "1", "2"
+            ai_levels_package[str(i)] = level_json_data
+
+        # Заменяем уровни в менеджере
+        self.level_manager.set_custom_ai_levels(ai_levels_package)
+
+        # Сбрасываем игру на начало
+        self.initialize_level()
+        self.state = GameState.PLAYING
 
     def initialize_level(self):
         level_data = self.level_manager.get_current_level()
@@ -441,16 +475,20 @@ class GameCore:
         self.draw_ui()
 
     def draw_start_screen(self):
+        # Переопределим контент для отрисовки кнопок в методе draw_ui_window
+        buttons = [
+            {"text": "Classic Mode", "key": "Enter", "rect": self.btn_start_rect},
+            {"text": "AI Gen Mode (3 Maps)", "key": "A", "rect": self.btn_ai_mode_rect},
+        ]
+
         self.draw_ui_window(
             title="DUNGEON ESCAPE",
             title_color=(200, 50, 50),
             content_lines=[
                 "Welcome, brave adventurer.",
-                "",
-                "Navigate the grid, defeat enemies,",
-                "and find the exit portal.",
+                "Choose your path:",
             ],
-            footer_text="Controls: WASD (Move) | SHIFT (Dash) | SPACE (Interact) | ENTER to Start",
+            buttons=buttons,
         )
 
     def draw_pause_screen(self):

@@ -30,6 +30,53 @@ class HybridLevelGenerator(AdvancedLevelGenerator):
         super().__init__(width=16, height=10, difficulty=5)
         self.ai = ai_trainer
 
+    def convert_to_game_format(self, grid):
+        # Создаем структуру, идентичную вашему JSON примеру
+        level_data = {
+            "name": f"AI Gen Level",
+            "grid_width": self.width,
+            "grid_height": self.height,
+            "player_start": [1, 1],
+            "walls": [],
+            "enemies": [],
+            "items": [],
+            "chests": [],
+            "merchant": None,
+            "exit": [1, 1],
+            "completion_condition": "find_exit",
+            "start_equipment": ["sword", "bow"],
+        }
+
+        for r in range(self.height):
+            for c in range(self.width):
+                cell = grid[r][c]
+                if cell == WALL:
+                    level_data["walls"].append([r, c])
+                elif cell == PLAYER:
+                    level_data["player_start"] = [r, c]
+                elif cell == EXIT:
+                    level_data["exit"] = [r, c]
+                elif cell == ENEMY:
+                    level_data["enemies"].append({"type": "melee", "position": [r, c]})
+                elif cell == MERCHANT:
+                    level_data["merchant"] = [r, c]
+                elif cell == CHEST:
+                    level_data["chests"].append(
+                        {"position": [r, c], "contents": {"coins": 30, "health": 1}}
+                    )
+                elif cell == POTION:
+                    level_data["items"].append({"type": "health", "position": [r, c]})
+                elif cell == ARROWS:
+                    level_data["items"].append(
+                        {"type": "arrows_item", "position": [r, c], "value": 5}
+                    )
+                elif cell == COIN:
+                    level_data["items"].append(
+                        {"type": "coin", "position": [r, c], "value": 10}
+                    )
+
+        return level_data
+
     def generate_with_ai(self):
         # 1. Ask Neural Net for the Raw Layout
         raw_grid = self.ai.generate_layout()
@@ -247,46 +294,3 @@ class HybridLevelGenerator(AdvancedLevelGenerator):
                     if len(region) > len(largest_region):
                         largest_region = region
         return largest_region
-
-    def convert_to_game_format(self, grid):
-        level_data = {
-            "name": f"AI Gen (Diff {self.difficulty})",
-            "grid_width": self.width,
-            "grid_height": self.height,
-            "walls": [],
-            "enemies": [],
-            "items": [],
-            "chests": [],
-            "completion_condition": "find_exit",
-        }
-
-        for r in range(self.height):
-            for c in range(self.width):
-                cell = grid[r][c]
-                if cell == WALL:
-                    level_data["walls"].append([r, c])
-                elif cell == PLAYER:
-                    level_data["player_start"] = [r, c]
-                elif cell == EXIT:
-                    level_data["exit"] = [r, c]
-                elif cell == ENEMY:
-                    e_type = "melee"
-                    level_data["enemies"].append({"type": e_type, "position": [r, c]})
-                elif cell == MERCHANT:
-                    level_data["merchant"] = [r, c]
-                elif cell == CHEST:
-                    level_data["chests"].append(
-                        {"position": [r, c], "contents": {"coins": 30, "health": 1}}
-                    )
-                elif cell == POTION:
-                    level_data["items"].append({"type": "health", "position": [r, c]})
-                elif cell == ARROWS:
-                    level_data["items"].append(
-                        {"type": "arrows_item", "position": [r, c], "value": 5}
-                    )
-                elif cell == COIN:
-                    level_data["items"].append(
-                        {"type": "coin", "position": [r, c], "value": 10}
-                    )
-
-        return level_data

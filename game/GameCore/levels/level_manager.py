@@ -50,6 +50,20 @@ class LevelManager:
             print(f"ERROR loading levels: {e}")
             self.levels = {}
 
+    def set_custom_ai_levels(self, levels_dict):
+        """
+        Принимает словарь в формате { "0": level_data, "1": ... }
+        аналогичный тому, что загружается из файла.
+        """
+        self.levels = {}
+        for key, data in levels_dict.items():
+            level_id = int(key)
+            self.levels[level_id] = data
+
+        self.current_level = 0
+        self.max_level = max(self.levels.keys()) if self.levels else 0
+        print(f"AI Mode active. Levels loaded: {len(self.levels)}")
+
     def get_level(self, level_number):
         return self.levels.get(level_number)
 
@@ -75,11 +89,15 @@ class LevelManager:
         player = Player(p_pos[0], p_pos[1])
 
         # Apply starting equipment
+
+        # Read the equipment from the JSON data we generated
         start_equip = level_data.get("start_equipment", [])
-        if "bow" in start_equip:
-            player.has_bow = True
         if "sword" in start_equip:
             player.has_sword = True
+        if "bow" in start_equip:
+            player.has_bow = True
+            # Also give some starting arrows so the bow is useful!
+            player.inventory["arrows"] = player.inventory.get("arrows", 0) + 10
 
         # Create walls
         walls = []
@@ -127,16 +145,15 @@ class LevelManager:
 
         # Create exit
         exit_portal = None
-        if "exit" in level_data:
+        if level_data.get("exit") is not None:
             exit_pos = level_data["exit"]
             exit_portal = ExitPortal(exit_pos[0], exit_pos[1])
 
         # Create merchant
         merchant = None
-        if "merchant" in level_data:
+        if level_data.get("merchant") is not None:
             merch_pos = level_data["merchant"]
             merchant = Merchant(merch_pos[0], merch_pos[1])
-
         return player, walls, enemies, items, chests, exit_portal, merchant
 
     def is_level_complete(self, player, enemies, exit_portal, level_data):
