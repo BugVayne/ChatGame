@@ -1,9 +1,7 @@
-import io
 import threading
 
 import numpy as np
 import pygame
-from PIL import Image
 
 from game.GameCore.config import GameState
 from game.streamer import start_stream_server
