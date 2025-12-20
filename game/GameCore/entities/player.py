@@ -118,9 +118,6 @@ class Player(GameObject):
             if not enemy.is_alive():
                 continue
 
-            row_diff = abs(enemy.row - self.row)
-            col_diff = abs(enemy.col - self.col)
-
             if (
                 direction == "up"
                 and enemy.col == self.col

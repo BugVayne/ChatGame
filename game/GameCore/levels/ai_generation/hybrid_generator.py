@@ -7,7 +7,6 @@ from collections import deque
 sys.path.append(os.getcwd())
 
 from game.GameCore.levels.ai_generation.ai_level_generator import AdvancedLevelGenerator
-from game.GameCore.levels.ai_generation.neural_generator import AITrainer
 
 # Constants
 EMPTY = 0

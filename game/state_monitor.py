@@ -45,10 +45,7 @@ class StateMonitor:
             )
 
         # Low health warning
-        if (
-            current_state["player_health"] < 30
-            and self.previous_state["player_health"] >= 30
-        ):
+        if current_state["player_health"] < 30 <= self.previous_state["player_health"]:
             events.append(
                 {
                     "type": "low_health_warning",
