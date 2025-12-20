@@ -1,6 +1,12 @@
+import io
+import threading
+
+import numpy as np
 import pygame
+from PIL import Image
 
 from game.GameCore.config import GameState
+from game.streamer import start_stream_server
 
 
 class GameController:
@@ -9,8 +15,8 @@ class GameController:
         self.state_monitor = state_monitor
         self.external_interface = external_interface
 
-        # Stream buffer
-        self.latest_frame_bytes = None
+        # Change: Store the raw pixel array, not the finished bytes
+        self.latest_raw_frame = None
         self.frame_lock = threading.Lock()
 
         self.stream_thread = threading.Thread(
@@ -22,10 +28,6 @@ class GameController:
         self.turn_timer = 0
         self.turn_interval = 3000
 
-    def get_latest_frame(self):
-        with self.frame_lock:
-            return self.latest_frame_bytes
-
     def start_websocket_server(self):
         """Start WebSocket server in a separate thread"""
         ws_thread = threading.Thread(
@@ -33,42 +35,40 @@ class GameController:
         )
         ws_thread.start()
 
+    def get_latest_frame(self):
+        """Returns the raw pixels for the streamer thread to process"""
+        with self.frame_lock:
+            if self.latest_raw_frame is None:
+                return None
+            return np.copy(self.latest_raw_frame)
+
     def run(self):
         clock = pygame.time.Clock()
         running = True
 
         while running:
-            dt = clock.tick(60)
+            dt = clock.tick(60)  # Game runs at 60 FPS
 
-            # Handle Auto-Turn (Only when playing)
             if self.game_core.state == GameState.PLAYING:
                 self.turn_timer += dt
                 if self.turn_timer >= self.turn_interval:
                     self.turn_timer = 0
                     self.execute_game_turn()
 
-            # Render
             self.game_core.render(dt)
 
-            # Capture frame for streaming (Main Thread Safe)
-            # We do this every few frames to reduce overhead, or every frame
+            # --- OPTIMIZED CAPTURE ---
             if self.game_core.screen:
                 try:
-                    # Fast copy using array3d
+                    # Get raw pixels from Pygame (This is very fast)
+                    # We don't do any PIL or JPEG stuff here anymore
                     pixel_array = pygame.surfarray.array3d(self.game_core.screen)
-                    # Transpose for PIL (Pygame is WxH, Numpy is HxW)
-                    pixel_array = np.transpose(pixel_array, (1, 0, 2))
-
-                    img = Image.fromarray(pixel_array)
-                    buf = io.BytesIO()
-                    img.save(buf, format="JPEG", quality=30)
 
                     with self.frame_lock:
-                        self.latest_frame_bytes = buf.getvalue()
-                except Exception:
-                    pass
+                        self.latest_raw_frame = pixel_array
+                except Exception as e:
+                    print(f"Capture error: {e}")
 
-            # Input
             running = self.handle_pygame_events()
 
         pygame.quit()
@@ -284,65 +284,3 @@ class GameController:
             print(f"Executing command: {command}")
 
         return True
-
-
-import io
-import threading
-import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
-import numpy as np
-from PIL import Image
-
-
-class GameStreamHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/stream":
-            self.send_response(200)
-            self.send_header(
-                "Content-Type", "multipart/x-mixed-replace; boundary=frame"
-            )
-            self.end_headers()
-
-            while True:
-                try:
-                    # Retrieve the latest frame safely from the controller
-                    # This byte buffer is generated in the main thread
-                    frame_data = self.server.game_controller.get_latest_frame()
-
-                    if frame_data:
-                        self.wfile.write(b"--frame\r\n")
-                        self.send_header("Content-Type", "image/jpeg")
-                        self.send_header("Content-Length", len(frame_data))
-                        self.end_headers()
-                        self.wfile.write(frame_data)
-                        self.wfile.write(b"\r\n")
-
-                    # Limit FPS of the stream to save CPU
-                    time.sleep(0.05)
-
-                except (BrokenPipeError, ConnectionResetError):
-                    break
-                except Exception as e:
-                    print(f"Stream error: {e}")
-                    break
-                except Exception as e:
-                    print(f"Stream error: {e}")
-                    time.sleep(0.1)  # Prevent tight loop on error
-
-    def log_message(self, format, *args):
-        # Suppress normal HTTP logging to reduce output spam
-        pass
-
-
-class GameStreamServer(HTTPServer):
-    def __init__(self, game_controller):
-        super().__init__(("localhost", 8080), GameStreamHandler)
-        self.game_controller = game_controller
-        self.timeout = 1  # Set timeout to prevent blocking
-
-
-def start_stream_server(game_controller):
-    server = GameStreamServer(game_controller)
-    print("Game stream server started at http://localhost:8080/stream")
-    server.serve_forever()
