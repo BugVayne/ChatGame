@@ -1,5 +1,3 @@
-import random
-
 import pygame
 
 from game.GameCore.config import GameConfig, GameState, UIStyle
@@ -63,11 +61,6 @@ class GameCore:
         self.grid_height = level_data["grid_height"]
         self.grid = [
             [None for _ in range(self.grid_width)] for _ in range(self.grid_height)
-        ]
-
-        self.floor_rotations = [
-            [random.choice([0, 90, 180, 270]) for _ in range(self.grid_width)]
-            for _ in range(self.grid_height)
         ]
 
         # Update screen size
@@ -371,27 +364,18 @@ class GameCore:
         floor_anim = self.resource_manager.get_animation("floor")
 
         if floor_anim:
-            floor_anim = self.resource_manager.get_animation("floor")
+            floor_img = floor_anim[0]
+            # Scale it once to match cell size
+            floor_img = pygame.transform.scale(
+                floor_img, (self.cell_size, self.cell_size)
+            )
 
-            if floor_anim:
-                base_floor_img = floor_anim[0]
-                # Scale it once
-                base_floor_img = pygame.transform.scale(
-                    base_floor_img, (self.cell_size, self.cell_size)
-                )
-
-                # Draw floor grid with stored rotations
-                for r in range(self.grid_height):
-                    for c in range(self.grid_width):
-                        angle = self.floor_rotations[r][c]
-                        # Rotate the base image
-                        rotated_floor = self.resource_manager.get_rotated_surface(
-                            base_floor_img, angle
-                        )
-
-                        self.screen.blit(
-                            rotated_floor, (c * self.cell_size, r * self.cell_size)
-                        )
+            # Draw floor grid
+            for r in range(self.grid_height):
+                for c in range(self.grid_width):
+                    self.screen.blit(
+                        floor_img, (c * self.cell_size, r * self.cell_size)
+                    )
         else:
             # Fallback if resource missing: Draw basic rectangles
             for r in range(self.grid_height):
