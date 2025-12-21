@@ -8,3 +8,5 @@ opencv-python~=4.12.0.88
 flask-sock~=0.7.0
 nltk~=3.9.2
 fastapi~=0.126.0
+unicorn~=2.1.4
+torch~=2.9.1
