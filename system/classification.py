@@ -1,59 +1,40 @@
 import json
-
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC # Новая модель
 from sklearn.pipeline import make_pipeline
 
-# Чтение данных из JSON файла
+# Чтение данных
 with open("data.json", "r", encoding="utf-8") as file:
     json_data = json.load(file)
 
-# Преобразование данных в нужный формат
 data = []
 for intent, directions in json_data.items():
     for direction, phrases in directions.items():
         for phrase in phrases:
-            data.append((phrase["phrase"], intent))  # Используем только намерение
+            data.append((phrase["phrase"], f"{intent}_{direction}"))
 
-# Пример вывода результата
-for item in data:
-    print(item)
-
-# Разделим данные на сообщения и метки
 messages, labels = zip(*data)
 
-# Разделим данные на обучающую и тестовую выборки
+# Увеличим random_state для стабильности на маленьких данных
 X_train, X_test, y_train, y_test = train_test_split(
-    messages, labels, test_size=0.2, random_state=42
+    messages, labels, test_size=0.2, random_state=42, stratify=labels
 )
 
-# Создаем модель
-model = make_pipeline(CountVectorizer(), MultinomialNB())
+# Создаем продвинутую модель
+# TfidfVectorizer сделает редкие слова (ударь, лети) более важными, чем частые (вверх, вниз)
+model = make_pipeline(
+    TfidfVectorizer(ngram_range=(1, 2)),
+    LinearSVC(C=1.0, random_state=42)
+)
 
-# Обучаем модель
 model.fit(X_train, y_train)
 
-# Оценка модели
 accuracy = model.score(X_test, y_test)
-print(f"Точность: {accuracy:.2f}")
+print(f"Новая точность (LinearSVC): {accuracy:.2f}")
 
-# Пример классификации новых сообщений
-new_messages = [
-    "подняться выше",
-    "спуститься вниз",
-    "пойти налево",
-    "двигаться вправо",
-    "рывок вверх",
-    "рывок налево",
-    "возьми меч",
-    "ударь вверх",
-]
-
-predictions = model.predict(new_messages)
-for message in new_messages:
-    predicted_intent = model.predict([message])[0]
-    entity = message.split()[-1]  # Предполагается, что сущность - это последнее слово
-    print(
-        f"Сообщение: '{message}' -> Намерение: '{predicted_intent}', Сущность: '{entity}'"
-    )
+# Пример классификации
+new_messages = ["атакуй вверх", "быстро прыгни влево", "купи зелье"]
+for msg in new_messages:
+    pred = model.predict([msg])[0]
+    print(f"'{msg}' -> {pred}")
