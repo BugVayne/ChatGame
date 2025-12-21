@@ -2,161 +2,210 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <title>Игровой чат</title>
+  <title>Древний Свиток</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Philosopher:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+    * { box-sizing: border-box; }
+
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: 'Old Standard TT', serif;
+      background: #1a0f0a;
+      overflow: hidden;
     }
-    body {
-      background: #f5f5f5;
-    }
+
     .container {
       display: flex;
       height: 100vh;
       width: 100vw;
     }
 
-    /* Левая колонка — чат, ~1/4 ширины */
+    /* --- ЛЕВАЯ ПАНЕЛЬ: ЧАТ (30%) --- */
     .chat-panel {
-      width: 25%;
-      min-width: 280px;
-      max-width: 480px;
-      background: #ffe6f0; /* бледно-нежно розовый */
+      width: 30%;
+      min-width: 300px;
+      position: relative;
       display: flex;
       flex-direction: column;
-      border-right: 1px solid rgba(0,0,0,0.08);
+      background-color: #e2cbb1;
+      background-image:
+        url('https://www.transparenttextures.com/patterns/pinstriped-suit.png'),
+        url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+      clip-path: polygon(0% 0%, 98% 1%, 100% 5%, 97% 12%, 100% 20%, 96% 35%, 100% 50%, 97% 65%, 100% 80%, 98% 95%, 100% 100%, 0% 100%);
+      box-shadow: 10px 0 20px rgba(0,0,0,0.5);
+      border-right: 2px solid #5d4037;
+      z-index: 30;
     }
+
     .chat-header {
-      padding: 10px 14px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      font-weight: 600;
+      padding: 25px 15px 15px;
+      border-bottom: 2px solid rgba(93, 64, 55, 0.3);
+      font-family: 'Philosopher', sans-serif;
+      font-size: 1.6rem;
+      text-align: center;
+      color: #3e2723;
+      text-transform: uppercase;
+      letter-spacing: 3px;
     }
+
     .chat-history {
       flex: 1;
       overflow-y: auto;
-      padding: 10px;
-    }
-    .message {
-      margin-bottom: 10px;
-      display: flex;
-    }
-    .message.system {
-      justify-content: flex-start;
-    }
-    .message.user {
-      justify-content: flex-end;
-    }
-    .bubble {
-      max-width: 95%;
-      padding: 6px 9px;
-      border-radius: 8px;
-      background: #ffffffaa;
-      backdrop-filter: blur(4px);
-      font-size: 0.9rem;
-      word-wrap: break-word;
-      white-space: pre-wrap;
-    }
-    .message.user .bubble {
-      background: #fff;
-      border: 1px solid rgba(0,0,0,0.07);
-    }
-    .message.system .bubble {
-      background: #ffd6ea;
-    }
-    .timestamp {
-      font-size: 0.7rem; /* маленькие цифры */
-      color: #555;
-      margin-top: 2px;
-    }
-    .chat-input {
-      padding: 8px;
-      border-top: 1px solid rgba(0,0,0,0.08);
-      background: #ffe6f0;
-    }
-    .chat-input form {
-      display: flex;
-      gap: 6px;
-    }
-    .chat-input input[type="text"] {
-      flex: 1;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(0,0,0,0.2);
-      font-size: 0.9rem;
-    }
-    .chat-input button {
-      padding: 6px 12px;
-      font-size: 0.9rem;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      background: #ff98c6;
-    }
-    .chat-input button:hover {
-      filter: brightness(1.05);
+      padding: 20px;
+      mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
     }
 
-    /* Правая часть — заглушка под игру (3/4 экрана) */
+    .chat-history::-webkit-scrollbar { width: 5px; }
+    .chat-history::-webkit-scrollbar-thumb { background: #5d4037; }
+
+    .message {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .message.user { align-items: flex-end; }
+    .message.system { align-items: flex-start; }
+
+    .bubble {
+      max-width: 90%;
+      padding: 10px 15px;
+      font-size: 1.05rem;
+      line-height: 1.4;
+    }
+
+    /* СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЯ (Светлее) */
+    .message.user .bubble {
+      background: rgba(139, 90, 43, 0.1);
+      border-right: 3px solid #8b5a2b;
+      font-style: italic;
+      color: #2b1d12;
+    }
+
+    /* СООБЩЕНИЯ СИСТЕМЫ (Тёмные) */
+    .message.system .bubble {
+      background: rgba(62, 39, 35, 0.15); /* Тёмно-коричневый полупрозрачный фон */
+      border-left: 3px solid #3e2723;
+      color: #1a0f0a; /* Более глубокий тёмный цвет текста */
+      font-weight: 500;
+    }
+
+    .chat-input {
+      padding: 20px;
+      background: rgba(0,0,0,0.05);
+      border-top: 1px solid rgba(93, 64, 55, 0.2);
+    }
+    .chat-input form { display: flex; gap: 10px; }
+    .chat-input input[type="text"] {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #8b5a2b;
+      background: rgba(255, 250, 240, 0.5);
+      font-family: 'Old Standard TT', serif;
+      outline: none;
+    }
+    .chat-input button {
+      padding: 10px 20px;
+      background: #5d4037;
+      color: #e2cbb1;
+      border: none;
+      cursor: pointer;
+      font-family: 'Philosopher', sans-serif;
+    }
+
+    /* --- ПРАВАЯ ПАНЕЛЬ: ИГРОВАЯ ЗОНА --- */
     .game-panel {
       flex: 1;
-      background: #111;
-      color: #eee;
+      background-image: url('/static/bg.jpg');
+      background-repeat: repeat;
+      background-size: auto;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      position: relative;
+      box-shadow: inset 40px 0 60px rgba(0,0,0,0.9);
+    }
+
+    .spacer-left {
+      width: 7%;
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .game-viewport {
+      width: 86%;
+      height: 86%;
+      position: relative;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.85);
+      border: 3px solid #3e2723;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 50px rgba(0,0,0,0.8);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      text-align: center;
+      justify-content: flex-start;
+      padding-top: 50px;
+      overflow: hidden;
+      z-index: 5;
     }
-    .game-panel h1 {
-      margin-bottom: 8px;
+
+    .spacer-right {
+      width: 7%;
+      height: 100%;
     }
-    .game-panel p {
-      max-width: 400px;
-      opacity: 0.75;
-      font-size: 0.95rem;
+
+    /* --- СПРАЙТ ПЕРСОНАЖА --- */
+    .sprite-image {
+      height: 40%;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 0 15px rgba(0,0,0,1));
+      transition: opacity 0.2s ease;
+      margin-bottom: 25px;
     }
+
+    .game-viewport h1 { color: #8b5a2b; font-family: 'Philosopher'; font-size: 3.5rem; margin: 0; text-shadow: 2px 2px 5px #000; }
+    .game-viewport p { color: #a1887f; font-style: italic; font-size: 1.3rem; margin-top: 15px; }
   </style>
 </head>
 <body>
+
   <div class="container">
-    <!-- Левая колонка: чат -->
     <div class="chat-panel">
-      <div class="chat-header">
-        Чат
-      </div>
+      <div class="chat-header">Летопись</div>
       <div class="chat-history" id="chat-history">
-        <!-- Серверная начальная отрисовка истории (на случай, если WebSocket не подключится) -->
-        {% for msg in history %}
-          <div class="message {{ msg.role }}">
-            <div>
+        {% if history %}
+          {% for msg in history %}
+            <div class="message {{ msg.role }}">
               <div class="bubble">{{ msg.text }}</div>
-              {% if msg.role == 'user' %}
-                <div class="timestamp">Время отправки: {{ msg.time }}</div>
-              {% else %}
-                <div class="timestamp">Время ответа: {{ msg.time }}</div>
-              {% endif %}
             </div>
-          </div>
-        {% endfor %}
+          {% endfor %}
+        {% endif %}
       </div>
       <div class="chat-input">
         <form id="chat-form">
-          <input id="message-input" type="text" name="message" placeholder="Введите сообщение..." autocomplete="off" required>
-          <button type="submit">Отправить</button>
+          <input id="message-input" type="text" placeholder="Писать здесь..." autocomplete="off" required>
+          <button type="submit">Печать</button>
         </form>
       </div>
     </div>
 
-    <!-- Правая колонка: заглушка под игру -->
     <div class="game-panel">
-        <!-- Подключаем видеопоток с игрового сервера -->
-      <img src="http://127.0.0.1:8080/stream" alt="Game Stream" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+      <div class="spacer-left">
+          <img id="game-sprite" class="sprite-image" src="/static/idle.gif" alt="Character">
+      </div>
+
+      <div class="game-viewport">
+        <img src="http://127.0.0.1:8080/stream" alt="Game Stream" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
+      </div>
+
+      <div class="spacer-right"></div>
     </div>
   </div>
 
@@ -164,79 +213,59 @@
     const historyEl = document.getElementById('chat-history');
     const form = document.getElementById('chat-form');
     const input = document.getElementById('message-input');
+    const spriteImg = document.getElementById('game-sprite');
 
-    // Функция добавления сообщения в DOM
+    const SPRITE_IDLE = '/static/idle.gif';
+    const SPRITE_TYPING = '/static/user_typing.gif';
+    const SPRITE_SYSTEM = '/static/system_talking.gif';
+
+    let typingTimer;
+    let isWaitingForSystem = false;
+
+    function setSprite(src) {
+        if (!spriteImg.src.includes(src)) spriteImg.src = src;
+    }
+
     function appendMessage(msg) {
       const wrapper = document.createElement('div');
       wrapper.classList.add('message', msg.role);
-
-      const inner = document.createElement('div');
-      const bubble = document.createElement('div');
-      bubble.classList.add('bubble');
-      bubble.textContent = msg.text;
-
-      const ts = document.createElement('div');
-      ts.classList.add('timestamp');
-      if (msg.role === 'user') {
-        ts.textContent = 'Время отправки: ' + msg.time;
-      } else {
-        ts.textContent = 'Время ответа: ' + msg.time;
-      }
-
-      inner.appendChild(bubble);
-      inner.appendChild(ts);
-      wrapper.appendChild(inner);
+      wrapper.innerHTML = `<div class="bubble">${msg.text}</div>`;
       historyEl.appendChild(wrapper);
-
       historyEl.scrollTop = historyEl.scrollHeight;
     }
 
-    // Подключаемся к WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = protocol + '://' + window.location.host + '/ws';
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = function () {
-      console.log('WebSocket connected:', wsUrl);
-    };
-
-    ws.onmessage = function (event) {
+    const ws = new WebSocket('ws://' + window.location.host + '/ws');
+    ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'history') {
-          // При первом подключении сервер присылает полную историю
           historyEl.innerHTML = '';
           (data.messages || []).forEach(appendMessage);
         } else if (data.type === 'message') {
           appendMessage(data.message);
+          if (data.message.role === 'system') {
+            isWaitingForSystem = false;
+            setSprite(SPRITE_IDLE);
+          }
         }
-      } catch (e) {
-        console.error('Invalid WS message:', event.data, e);
-      }
+      } catch (e) { console.error(e); }
     };
 
-    ws.onclose = function () {
-      console.log('WebSocket closed');
-    };
-
-    ws.onerror = function (err) {
-      console.error('WebSocket error', err);
-    };
-
-    // Отправка сообщения через WebSocket вместо POST
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const text = input.value.trim();
-      if (!text || ws.readyState !== WebSocket.OPEN) {
-        return;
-      }
-      ws.send(JSON.stringify({ text: text }));
-      input.value = '';
-      input.focus();
+    input.addEventListener('input', () => {
+      if (isWaitingForSystem) return;
+      setSprite(SPRITE_TYPING);
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => { if (!isWaitingForSystem) setSprite(SPRITE_IDLE); }, 1000);
     });
 
-    // Автопрокрутка вниз при загрузке (на случай без WS)
-    historyEl.scrollTop = historyEl.scrollHeight;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!input.value.trim() || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ text: input.value.trim() }));
+      input.value = '';
+      isWaitingForSystem = true;
+      setSprite(SPRITE_SYSTEM);
+    });
   </script>
 </body>
 </html>

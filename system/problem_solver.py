@@ -1,102 +1,96 @@
 import json
-
+import random
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import LinearSVC
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.pipeline import make_pipeline
+# Добавляем стеммер для русского языка
+from nltk.stem.snowball import RussianStemmer
 
 
 class ProblemSolver:
-    def __init__(self):
-        with open("data.json", "r", encoding="utf-8") as file:
+    def __init__(self, data_path="data.json", responses_path="responses.json"):
+        # Инициализируем стеммер
+        self.stemmer = RussianStemmer()
+
+        with open(data_path, "r", encoding="utf-8") as file:
             json_data = json.load(file)
 
-        data = []
-        self.known_entities = set()
+        with open(responses_path, "r", encoding="utf-8") as file:
+            self.responses = json.load(file)
 
-        # Flatten data for training
+        data = []
+        # Словарь вида {основа_слова: полное_название_сущности}
+        # Например: {"хилк": "хилка", "стрел": "стрелы"}
+        self.entity_roots = {}
+
         for intent, subcats in json_data.items():
             for subcat, phrases in subcats.items():
                 for entry in phrases:
-                    # Append phrase and intent pair
-                    data.append((entry["phrase"], intent))
+                    data.append((entry["phrase"].lower(), intent))
 
-                    # Collect entities for extraction
-                    ent = entry.get("entity", "").lower()
-                    if ent:
-                        self.known_entities.add(ent)
+                    full_entity = entry.get("entity", "").lower()
+                    if full_entity:
+                        # Сохраняем основу сущности
+                        # Если сущность "хилка", стеммер сделает "хилк"
+                        root = self.stemmer.stem(full_entity)
+                        self.entity_roots[root] = full_entity
 
         messages, labels = zip(*data)
 
-        # Use ALL data for training since dataset is small, but keep split for validation metric
+        # Обучение модели (LinearSVC)
         X_train, X_test, y_train, y_test = train_test_split(
-            messages, labels, test_size=0.1, random_state=42
+            messages, labels, test_size=0.2, random_state=42, stratify=labels
         )
 
-        # TF-IDF with N-grams (1-2 words) to capture "attack up" vs "go up"
+        base_svc = LinearSVC(C=1.0, random_state=42, tol=1e-3, max_iter=2000)
         self.model = make_pipeline(
-            TfidfVectorizer(ngram_range=(1, 2)), MultinomialNB(alpha=0.1)
+            TfidfVectorizer(ngram_range=(1, 2)),
+            CalibratedClassifierCV(base_svc, cv=3)
         )
 
-        self.model.fit(X_train, y_train)
-        print(f"Model accuracy on test set: {self.model.score(X_test, y_test):.2f}")
-
-        # Refit on FULL dataset for better production performance
         self.model.fit(messages, labels)
+        print(f"Система готова. База сущностей: {list(self.entity_roots.keys())}")
 
     def classify_message(self, message):
         message_lower = message.lower()
 
-        # 1. Predict Intent
-        probabilities = self.model.predict_proba([message_lower])[0]
-        max_prob = np.max(probabilities)
-        predicted_index = np.argmax(probabilities)
-        predicted_intent = self.model.classes_[predicted_index]
+        # 1. Предсказание намерения
+        probs = self.model.predict_proba([message_lower])[0]
+        max_prob = np.max(probs)
+        predicted_intent = self.model.classes_[np.argmax(probs)]
 
-        # DEBUG PRINT: Show what model thinks
-        print(
-            f"DEBUG NLP: Msg='{message}' | Intent='{predicted_intent}' ({max_prob:.3f})"
-        )
-
-        # Threshold for "I don't understand"
-        if max_prob < 0.25:  # Lowered threshold slightly
-            print("DEBUG NLP: Rejected by threshold")
+        if max_prob < 0.30:
             return ["unknown", ""]
 
-        # 2. Extract Entity (Direction)
+        # 2. ИЗМЕНЕНО: Извлечение сущности через стемминг
         entity = ""
-        # Search for known entities in the message
-        for known in self.known_entities:
-            # Check strictly as a whole word
-            if known in message_lower.split():
-                entity = known
+        # Очищаем сообщение от знаков препинания и разбиваем на слова
+        words = "".join([c for c in message_lower if c.isalnum() or c.isspace()]).split()
+
+        for word in words:
+            word_root = self.stemmer.stem(word)  # "хилку" -> "хилк", "стрелами" -> "стрел"
+            if word_root in self.entity_roots:
+                entity = self.entity_roots[word_root]
                 break
 
-        print(
-            f"Message: '{message}' -> Intent: '{predicted_intent}' ({max_prob:.2f}), Entity: '{entity}'"
-        )
+        # Запасной вариант: если стеммер не сработал, ищем прямое вхождение
+        if not entity:
+            for root, full_name in self.entity_roots.items():
+                if root in message_lower:
+                    entity = full_name
+                    break
+
         return [str(predicted_intent), entity]
 
-    @staticmethod
-    def ask_message(data):
-        intent, entity = data[0], data[1]
+    def ask_message(self, classification_data):
+        intent, entity = classification_data[0], classification_data[1]
+        phrases = self.responses.get(intent, self.responses["unknown"])
+        response_template = random.choice(phrases)
 
-        if intent == "unknown":
-            return "Я не совсем понял команду. Попробуй 'иди вверх' или 'атака вниз'."
-        if intent == "greeting":
-            return "Привет! Готов к приключениям?"
-        if intent == "fight":
-            return f"Атакую мечом {entity}!"
-        if intent == "shoot":
-            return f"Стреляю из лука {entity}!"
-        if intent == "movement":
-            return f"Иду {entity}."
-        if intent == "dash":
-            return f"Рывок {entity}!"
-        if intent == "heal":
-            return "Пью зелье здоровья."
-        if intent == "reset":
-            return "Перезапускаю уровень..."
-
-        return "Команда принята."
+        # Если сущность не найдена, а в шаблоне она нужна,
+        # подставим пустую строку или "что-то"
+        display_entity = entity if entity else ""
+        return response_template.format(entity=display_entity).strip()
