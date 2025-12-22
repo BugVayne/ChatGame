@@ -954,6 +954,67 @@ class GameCore:
             self.initialize_level()
             result["message"] = "Level reset"
 
+        elif action == "pause":
+            # Ставим на паузу, только если играем
+            if self.state == GameState.PLAYING:
+                self.state = GameState.PAUSED
+                result["message"] = "Game paused"
+            else:
+                result["status"] = "error"
+
+        elif action == "resume":
+            # Снимаем с паузы
+            if self.state == GameState.PAUSED:
+                self.state = GameState.PLAYING
+                result["message"] = "Game resumed"
+            elif self.state == GameState.CHEST_POPUP:  # Также закрываем сундуки
+                self.state = GameState.PLAYING
+            elif self.state == GameState.MERCHANT:  # И магазин
+                self.state = GameState.PLAYING
+            else:
+                result["status"] = "error"
+
+        elif action == "interact_merchant":
+            # Проверяем дистанцию до торговца
+            if self.merchant:
+                dist = abs(self.player.row - self.merchant.row) + abs(self.player.col - self.merchant.col)
+                if dist <= 1:
+                    self.state = GameState.MERCHANT
+                    result["message"] = "Merchant shop opened"
+                else:
+                    result["status"] = "error"
+                    result["message"] = "Merchant is too far"
+            else:
+                result["status"] = "error"
+                result["message"] = "No merchant in level"
+
+        elif action == "buy_item":
+            # Покупка по индексу (0 или 1)
+            index = command.get("item_index")
+            if self.state == GameState.MERCHANT:
+                if self.buy_item(index):
+                    result["message"] = f"Item {index} purchased"
+                else:
+                    result["status"] = "error"
+                    result["message"] = "Not enough gold or max upgrade"
+            else:
+                result["status"] = "error"
+                result["message"] = "Not in shop"
+
+        elif action == "main_menu":
+            self.state = GameState.START
+            self.level_manager.reset_to_level(1)
+            self.initialize_level()
+            result["message"] = "Returned to main menu"
+
+        elif action == "retry":
+            if self.state in [GameState.GAME_OVER, GameState.VICTORY]:
+                self.initialize_level()  # Рестарт уровня
+                self.state = GameState.PLAYING
+                result["message"] = "Level restarted"
+            else:
+                result["status"] = "error"
+
         else:
             result["status"] = "error"
             result["message"] = f"Unknown action: {action}"

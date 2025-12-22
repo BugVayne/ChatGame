@@ -69,6 +69,32 @@ def send_command_to_game(nlp_data):
     elif intent == "reset":
         command = {"action": "reset"}
 
+    elif intent == "menu_control":
+        # Обработка паузы и меню
+        if direction_ru in ["пауза", "открыть"]:
+            command = {"action": "pause"}
+        elif direction_ru in ["закрыть", "продолжить"]:
+            command = {"action": "resume"}
+
+    elif intent == "trade_interact":
+        # Попытка открыть магазин
+        command = {"action": "interact_merchant"}
+
+    elif intent == "shop_actions":
+        # Покупка предметов (индексы должны совпадать с shop_items в GameCore)
+        # 0: Health Potion, 1: Arrows
+        if "хилка" in direction_ru:
+            command = {"action": "buy_item", "item_index": 0}
+        elif "стрела" in direction_ru:
+            command = {"action": "buy_item", "item_index": 1}
+
+    elif intent == "main_menu_navigation":
+        # Выход в главное меню
+        if direction_ru in ["меню", "выход"]:
+            command = {"action": "main_menu"}
+        elif direction_ru in ["рестарт", "повтор"]:
+            command = {"action": "retry"}
+
     elif intent == "greeting":
         return "OK"  # No game command needed
 
