@@ -8,21 +8,25 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import datetime
 import json
+import websockets  # ВАЖНО: Добавлено
+import os  # ВАЖНО: Добавлено
 
 app = FastAPI()
 
-# Подключаем папку со статикой (картинки, стили)
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
 templates = Jinja2Templates(directory="templates")
 
-# Инициализация игровых объектов
 user = User("Пользователь")
 game_system = System()
 problem_solver = ProblemSolver()
 
+# --- CONFIG ---
+GAME_HOST = os.getenv("GAME_HOST", "localhost")
+GAME_WS_URL = f"ws://{GAME_HOST}:8765"
 
-# Глобальное состояние обучения для простоты (в идеале хранить в объекте user)
+
+# --------------
+
 class StudyState:
     STEP_MOVEMENT = 0
     STEP_INVENTORY = 1
@@ -39,17 +43,74 @@ async def get_chat(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request, "history": user.history})
 
 
+# --- ФУНКЦИЯ УПРАВЛЕНИЯ ИГРОЙ ---
+async def send_command_to_game(nlp_data):
+    intent, direction_ru = nlp_data[0], nlp_data[1]
+
+    direction_map = {
+        "вверх": "up", "выше": "up", "наверх": "up",
+        "вниз": "down", "ниже": "down",
+        "влево": "left", "налево": "left",
+        "вправо": "right", "направо": "right",
+    }
+    direction_eng = direction_map.get(direction_ru)
+    command = {}
+
+    # Основные команды
+    if intent == "movement" and direction_eng:
+        command = {"action": "move", "direction": direction_eng}
+    elif intent == "dash" and direction_eng:
+        command = {"action": "dash", "direction": direction_eng}
+    elif intent == "attack" and direction_eng:
+        command = {"action": "attack_sword", "direction": direction_eng}
+    elif intent == "shoot" and direction_eng:
+        command = {"action": "attack_bow", "direction": direction_eng}
+    elif intent == "heal":
+        command = {"action": "use_item", "item_type": "health"}
+    elif intent == "reset":
+        command = {"action": "reset"}
+
+    # Расширенные команды
+    elif intent == "menu_control":
+        if direction_ru in ["пауза", "открыть"]:
+            command = {"action": "pause"}
+        elif direction_ru in ["закрыть", "продолжить"]:
+            command = {"action": "resume"}
+    elif intent == "trade_interact":
+        command = {"action": "interact_merchant"}
+    elif intent == "shop_actions":
+        if "хилка" in direction_ru:
+            command = {"action": "buy_item", "item_index": 0}
+        elif "стрела" in direction_ru:
+            command = {"action": "buy_item", "item_index": 1}
+    elif intent == "main_menu_navigation":
+        if direction_ru in ["меню", "выход"]:
+            command = {"action": "main_menu"}
+        elif direction_ru in ["рестарт", "повтор"]:
+            command = {"action": "retry"}
+
+    if command:
+        try:
+            async with websockets.connect(GAME_WS_URL) as ws:
+                payload = {"type": "game_command", "command": command}
+                await ws.send(json.dumps(payload))
+            return True
+        except Exception as e:
+            print(f"Game connection error: {e}")
+    return False
+
+
+# ---------------------------------
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global study_status
     await websocket.accept()
 
-    # Отправляем начальное приветствие при подключении, если история пуста
     if not user.history:
         welcome = game_system.greating_message()
         user.history.append({"role": "system", "text": welcome, "time": datetime.datetime.now().strftime("%H:%M:%S")})
 
-    # Отправляем текущую историю сообщений
     await websocket.send_json({"type": "history", "messages": user.history})
 
     try:
@@ -60,7 +121,11 @@ async def websocket_endpoint(websocket: WebSocket):
             if not message_from_user:
                 continue
 
-            # 1. Сохраняем сообщение пользователя
+            # Классифицируем
+            classification = problem_solver.classify_message(message_from_user)
+            # Отправляем в игру
+            await send_command_to_game(classification)
+
             user_msg = {
                 "role": "user",
                 "text": message_from_user,
@@ -69,14 +134,12 @@ async def websocket_endpoint(websocket: WebSocket):
             user.history.append(user_msg)
             await websocket.send_json({"type": "message", "message": user_msg})
 
-            # 2. Логика ответа (заменяет вашу функцию studing и цикл main)
             response_text = ""
 
             if message_from_user.lower() == 'стоп игра':
                 response_text = "Игра остановлена."
 
             elif study_status == StudyState.STEP_MOVEMENT:
-                classification = problem_solver.classify_message(message_from_user)
                 if classification[0] == 'movement':
                     response_text = "Супер! Теперь ты знаешь, как тебе передвигаться. Далее давай узнаем, что у тебя есть в инвентаре. Чтобы узнать, напиши 'инвентарь'"
                     study_status = StudyState.STEP_INVENTORY
@@ -91,7 +154,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     response_text = "Попробуй еще! Напиши 'инвентарь'"
 
             elif study_status == StudyState.STEP_EQUIP:
-                classification = problem_solver.classify_message(message_from_user)
                 if classification[0] == 'act' and classification[1] == 'меч':
                     response_text = "Круто! Попробуй ударить в каком-нибудь направлении"
                     study_status = StudyState.STEP_FIGHT
@@ -99,19 +161,15 @@ async def websocket_endpoint(websocket: WebSocket):
                     response_text = "Не сдавайся! У тебя получится! (Используй меч)"
 
             elif study_status == StudyState.STEP_FIGHT:
-                classification = problem_solver.classify_message(message_from_user)
-                if classification[0] == 'fight':
+                if classification[0] == 'fight' or classification[0] == 'attack':  # Обработаем оба варианта
                     response_text = "Ура! Теперь ты знаешь, как тебе спасаться от врагов. Постарайся дойти до конца этой комнаты, чтобы узнать, что дальше:)"
                     study_status = StudyState.COMPLETED
                 else:
                     response_text = "Попробуй еще раз. (Нужно действие боя)"
 
             else:
-                # Основной игровой цикл после обучения
-                classification = problem_solver.classify_message(message_from_user)
                 response_text = problem_solver.ask_message(classification)
 
-            # 3. Отправка ответа системы
             system_msg = {
                 "role": "system",
                 "text": response_text,
