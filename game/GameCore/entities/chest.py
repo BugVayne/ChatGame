@@ -1,13 +1,13 @@
-import pygame
 from game.GameCore.entities.game_object import GameObject
-from game.GameCore.config import GameConfig
 
 
 class Chest(GameObject):
     def __init__(self, row, col, contents):
         super().__init__(row, col, "chest")
-        self.contents = contents  # {'coins': 5, 'health': 1, etc.}
+        self.contents = contents
         self.opened = False
+        # Set initial key
+        self.animation_key = "chest_closed"
 
     def open(self):
         if not self.opened:
@@ -15,21 +15,33 @@ class Chest(GameObject):
             return self.contents
         return {}
 
-    def draw(self, screen, x, y, cell_size):
-        color = GameConfig.COLORS['chest']
+    def update_visuals(self, dt):
+        """
+        Override GameObject logic to prevent it from forcing
+        keys like 'chest_idle' or 'chest_run'.
+        """
+
+        # 1. Update State
         if self.opened:
-            color = (150, 120, 90)  # Darker when opened
+            self.animation_key = "chest_open"
+        else:
+            self.animation_key = "chest_closed"
 
-        # Chest body
-        pygame.draw.rect(screen, color,
-                         (x + 10, y + 15, cell_size - 20, cell_size - 25))
+        # 2. Advance Animation Frames
+        self.animation_timer += dt
+        if self.animation_timer >= self.animation_speed:
+            self.animation_timer = 0
 
-        # Chest lid
-        lid_height = 10 if self.opened else 5
-        pygame.draw.rect(screen, (180, 150, 110),
-                         (x + 5, y + 10, cell_size - 10, lid_height))
+            frames = self.resources.get_animation(self.animation_key)
+            if frames:
+                # Loop the animation
+                self.frame_index = (self.frame_index + 1) % len(frames)
 
-        # Lock
-        if not self.opened:
-            pygame.draw.circle(screen, (200, 200, 0),
-                               (x + cell_size // 2, y + 20), 5)
+                # OPTIONAL: If you want the chest to stay open on the last frame
+                # instead of looping (if you add an opening animation later):
+                # if self.opened and self.frame_index == len(frames) - 1:
+                #     self.frame_index = len(frames) - 1
+
+    def draw(self, screen):
+        # Just call super, the keys are now handled correctly in update_visuals
+        super().draw(screen)

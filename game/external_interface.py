@@ -1,8 +1,8 @@
 import asyncio
-import websockets
 import json
-import threading
-from typing import Set, Dict, Any
+from typing import Set
+
+import websockets
 
 
 class ExternalInterface:
@@ -13,7 +13,7 @@ class ExternalInterface:
         self.event_loop = None
         self.websocket_server = None
 
-    async def handle_websocket(self, websocket, path):
+    async def handle_websocket(self, websocket):
         """Handle incoming WebSocket connections"""
         self.connections.add(websocket)
         try:
@@ -35,15 +35,11 @@ class ExternalInterface:
 
             # Send current state after command
             current_state = self.state_monitor.get_current_state()
-            await websocket.send(json.dumps({
-                "type": "game_state",
-                "state": current_state
-            }))
+            await websocket.send(
+                json.dumps({"type": "game_state", "state": current_state})
+            )
         except Exception as e:
-            await websocket.send(json.dumps({
-                "type": "error",
-                "message": str(e)
-            }))
+            await websocket.send(json.dumps({"type": "error", "message": str(e)}))
 
     async def broadcast_game_event(self, event):
         """Broadcast game events to all connected clients"""
@@ -61,8 +57,7 @@ class ExternalInterface:
         """Thread-safe event broadcasting"""
         if self.event_loop and self.event_loop.is_running():
             asyncio.run_coroutine_threadsafe(
-                self.broadcast_game_event(event),
-                self.event_loop
+                self.broadcast_game_event(event), self.event_loop
             )
 
     def start_websocket_server(self):
@@ -70,7 +65,7 @@ class ExternalInterface:
 
         async def server_main():
             async with websockets.serve(
-                    self.handle_websocket, "localhost", 8765
+                self.handle_websocket, "localhost", 8765
             ) as server:
                 self.websocket_server = server
                 await asyncio.Future()  # Run forever
@@ -84,9 +79,7 @@ class ExternalInterface:
         command_type = command_data.get("type")
 
         if command_type == "game_command":
-            result = self.game_core.execute_command(
-                command_data.get("command", {})
-            )
+            result = self.game_core.execute_command(command_data.get("command", {}))
             return {"type": "command_response", "result": result}
 
         elif command_type == "query_state":
@@ -95,20 +88,11 @@ class ExternalInterface:
 
         elif command_type == "trigger_event":
             event_type = command_data.get("event_type")
-            return {
-                "type": "event_triggered",
-                "event": event_type
-            }
+            return {"type": "event_triggered", "event": event_type}
 
         elif command_type == "reset_game":
             self.game_core.initialize_world()
-            return {
-                "type": "game_reset",
-                "message": "Game has been reset"
-            }
+            return {"type": "game_reset", "message": "Game has been reset"}
 
         else:
-            return {
-                "type": "error",
-                "message": "Unknown command type"
-            }
+            return {"type": "error", "message": "Unknown command type"}

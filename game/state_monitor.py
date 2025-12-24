@@ -1,5 +1,6 @@
 import time
 
+
 class StateMonitor:
     def __init__(self, game_core):
         self.game_core = game_core
@@ -33,54 +34,61 @@ class StateMonitor:
 
         # Player health changes
         if current_state["player_health"] < self.previous_state["player_health"]:
-            events.append({
-                "type": "player_damaged",
-                "health": current_state["player_health"],
-                "damage": self.previous_state["player_health"] - current_state["player_health"],
-                "position": current_state["player_position"]
-            })
+            events.append(
+                {
+                    "type": "player_damaged",
+                    "health": current_state["player_health"],
+                    "damage": self.previous_state["player_health"]
+                    - current_state["player_health"],
+                    "position": current_state["player_position"],
+                }
+            )
 
         # Low health warning
-        if (current_state["player_health"] < 30 and
-                self.previous_state["player_health"] >= 30):
-            events.append({
-                "type": "low_health_warning",
-                "health": current_state["player_health"],
-                "urgency": "high"
-            })
+        if current_state["player_health"] < 30 <= self.previous_state["player_health"]:
+            events.append(
+                {
+                    "type": "low_health_warning",
+                    "health": current_state["player_health"],
+                    "urgency": "high",
+                }
+            )
 
         # Item collection
         for item_type in current_state["inventory"]:
-            if current_state["inventory"][item_type] > self.previous_state["inventory"][item_type]:
-                events.append({
-                    "type": "item_collected",
-                    "item_type": item_type,
-                    "count": current_state["inventory"][item_type],
-                    "position": current_state["player_position"]
-                })
+            if (
+                current_state["inventory"][item_type]
+                > self.previous_state["inventory"][item_type]
+            ):
+                events.append(
+                    {
+                        "type": "item_collected",
+                        "item_type": item_type,
+                        "count": current_state["inventory"][item_type],
+                        "position": current_state["player_position"],
+                    }
+                )
 
         # Enemy defeat
         if current_state["enemies_count"] < self.previous_state["enemies_count"]:
-            events.append({
-                "type": "enemy_defeated",
-                "remaining": current_state["enemies_count"]
-            })
+            events.append(
+                {"type": "enemy_defeated", "remaining": current_state["enemies_count"]}
+            )
 
         # Enemy proximity
         closest_enemy_distance = self.get_closest_enemy_distance()
         if 0 < closest_enemy_distance <= 2:
-            events.append({
-                "type": "enemy_nearby",
-                "distance": closest_enemy_distance,
-                "urgency": "high" if closest_enemy_distance == 1 else "medium"
-            })
+            events.append(
+                {
+                    "type": "enemy_nearby",
+                    "distance": closest_enemy_distance,
+                    "urgency": "high" if closest_enemy_distance == 1 else "medium",
+                }
+            )
 
         # Turn completion
         if current_state["turn"] > self.previous_state["turn"]:
-            events.append({
-                "type": "turn_completed",
-                "turn": current_state["turn"]
-            })
+            events.append({"type": "turn_completed", "turn": current_state["turn"]})
 
         self.previous_state = current_state
         if events:
@@ -95,7 +103,7 @@ class StateMonitor:
             return -1
 
         player_row, player_col = self.game_core.player.row, self.game_core.player.col
-        min_distance = float('inf')
+        min_distance = float("inf")
 
         for enemy in alive_enemies:
             distance = abs(player_row - enemy.row) + abs(player_col - enemy.col)

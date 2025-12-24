@@ -1,26 +1,22 @@
 import pygame
+
 from game.GameCore.entities.game_object import GameObject
-from game.GameCore.config import GameConfig
 
 
 class Merchant(GameObject):
     def __init__(self, row, col):
         super().__init__(row, col, "merchant")
+        self.animation_key = "merchant_idle"
 
-    def draw(self, screen, x, y, cell_size):
-        center_x = x + cell_size // 2
-        center_y = y + cell_size // 2
+    def draw(self, screen):
+        self.animation_key = "merchant_idle"
+        super().draw(screen)
 
-        # Body
-        pygame.draw.circle(screen, GameConfig.COLORS['merchant'],
-                           (center_x, center_y), cell_size // 3)
+        # Floating Dollar Sign
+        center_x = self.visual_x + self.cell_size // 2
+        center_y = self.visual_y + self.cell_size // 2
 
-        # Money bag
-        pygame.draw.ellipse(screen, (255, 215, 0),
-                            (center_x - 10, center_y + 5, 20, 15))
-
-        # "$" symbol
-        font = pygame.font.Font(None, 24)
-        text = font.render("$", True, (0, 0, 0))
-        text_rect = text.get_rect(center=(center_x, center_y + 12))
+        font = pygame.font.Font(None, 48)
+        text = font.render("$", True, (255, 215, 0))
+        text_rect = text.get_rect(center=(center_x, center_y - 20))
         screen.blit(text, text_rect)

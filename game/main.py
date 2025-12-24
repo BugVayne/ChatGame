@@ -1,9 +1,8 @@
 import pygame
-import threading
+from external_interface import ExternalInterface
 from game_controller import GameController
 from GameCore.core import GameCore
 from state_monitor import StateMonitor
-from external_interface import ExternalInterface
 
 
 def main():

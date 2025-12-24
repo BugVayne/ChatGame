@@ -1,6 +1,5 @@
-import pygame
-from game.GameCore.entities.game_object import GameObject
 from game.GameCore.config import GameConfig
+from game.GameCore.entities.game_object import GameObject
 
 
 class Player(GameObject):
@@ -9,10 +8,10 @@ class Player(GameObject):
         self.health = GameConfig.PLAYER_START_HEALTH
         self.max_health = GameConfig.PLAYER_MAX_HEALTH
         self.coins = 0
-        self.sword_level = 0
-        self.bow_level = 0
+        self.has_sword = False
+        self.has_bow = False
         self.dash_cooldown = 0
-        self.inventory = {"health": 2, "arrows": 5}
+        self.inventory = {"health": 2, "arrows": 50}
 
     def move(self, direction, grid, grid_width, grid_height):
         new_row, new_col = self.row, self.col
@@ -30,7 +29,12 @@ class Player(GameObject):
 
         # Check if target cell is passable
         target_obj = grid[new_row][new_col]
-        if target_obj is None or target_obj.type in ["item", "exit", "merchant", "chest"]:
+        if target_obj is None or target_obj.type in [
+            "item",
+            "exit",
+            "merchant",
+            "chest",
+        ]:
             grid[self.row][self.col] = None
             self.row, self.col = new_row, new_col
             grid[new_row][new_col] = self
@@ -42,39 +46,71 @@ class Player(GameObject):
         if self.dash_cooldown > 0:
             return False
 
-        new_row, new_col = self.row, self.col
+        # Track the last safe place we can actually stand
+        # Start at current position (in case we can't move at all)
+        last_valid_row, last_valid_col = self.row, self.col
+
+        # Temp variables for checking ahead
+        check_row, check_col = self.row, self.col
         distance = GameConfig.DASH_DISTANCE
 
         for _ in range(distance):
-            if direction == "up" and new_row > 0:
-                new_row -= 1
-            elif direction == "down" and new_row < grid_height - 1:
-                new_row += 1
-            elif direction == "left" and new_col > 0:
-                new_col -= 1
-            elif direction == "right" and new_col < grid_width - 1:
-                new_col += 1
-            else:
-                break
+            # 1. Calculate the coordinate of the next step
+            if direction == "up":
+                check_row -= 1
+            elif direction == "down":
+                check_row += 1
+            elif direction == "left":
+                check_col -= 1
+            elif direction == "right":
+                check_col += 1
 
-            # Stop if we hit a wall
-            if grid[new_row][new_col] and grid[new_row][new_col].type == "wall":
-                break
+            # 2. Check Boundaries
+            if not (0 <= check_row < grid_height and 0 <= check_col < grid_width):
+                break  # Hit edge of map
 
-        if (new_row != self.row or new_col != self.col):
-            grid[self.row][self.col] = None
-            self.row, self.col = new_row, new_col
-            grid[new_row][new_col] = self
+            # 3. Check Grid Content
+            cell_content = grid[check_row][check_col]
+
+            # BLOCKING LOGIC:
+            if cell_content is not None:
+                # A. WALLS: Hard stop. The dash ends immediately.
+                if cell_content.type == "wall":
+                    break
+
+                # B. ENEMIES / SOLIDS:
+                # We can pass THROUGH them, but we cannot LAND on them.
+                # So we continue the loop, but we DO NOT update 'last_valid_row/col'
+                if cell_content.type in ["enemy", "chest", "merchant"]:
+                    continue
+
+            # 4. If we are here, the tile is either None (Empty) or "item" (Walkable)
+            # This is a valid spot to land.
+            last_valid_row, last_valid_col = check_row, check_col
+
+        # 5. Apply the move ONLY if we found a new valid spot
+        if last_valid_row != self.row or last_valid_col != self.col:
+            grid[self.row][self.col] = None  # Remove player from old spot
+            self.row, self.col = last_valid_row, last_valid_col  # Update coords
+            grid[self.row][self.col] = self  # Place player in new spot
+
             self.dash_cooldown = GameConfig.DASH_COOLDOWN
             return True
 
         return False
 
     def attack_sword(self, direction, enemies):
-        if self.sword_level == 0:
+        if not self.has_sword:
             return []
 
-        damage = GameConfig.PLAYER_BASE_DAMAGE + self.sword_level * 5
+        if direction == "left":
+            self.facing_right = False
+        elif direction == "right":
+            self.facing_right = True
+
+        self.play_animation("player_attack", 400)
+
+        damage = GameConfig.PLAYER_BASE_DAMAGE
         range_distance = GameConfig.SWORD_RANGE
         hit_enemies = []
 
@@ -82,17 +118,33 @@ class Player(GameObject):
             if not enemy.is_alive():
                 continue
 
-            row_diff = abs(enemy.row - self.row)
-            col_diff = abs(enemy.col - self.col)
-
-            # Check if enemy is in sword range and direction
-            if direction == "up" and enemy.col == self.col and enemy.row < self.row and self.row - enemy.row <= range_distance:
+            if (
+                direction == "up"
+                and enemy.col == self.col
+                and enemy.row < self.row
+                and self.row - enemy.row <= range_distance
+            ):
                 hit_enemies.append(enemy)
-            elif direction == "down" and enemy.col == self.col and enemy.row > self.row and enemy.row - self.row <= range_distance:
+            elif (
+                direction == "down"
+                and enemy.col == self.col
+                and enemy.row > self.row
+                and enemy.row - self.row <= range_distance
+            ):
                 hit_enemies.append(enemy)
-            elif direction == "left" and enemy.row == self.row and enemy.col < self.col and self.col - enemy.col <= range_distance:
+            elif (
+                direction == "left"
+                and enemy.row == self.row
+                and enemy.col < self.col
+                and self.col - enemy.col <= range_distance
+            ):
                 hit_enemies.append(enemy)
-            elif direction == "right" and enemy.row == self.row and enemy.col > self.col and enemy.col - self.col <= range_distance:
+            elif (
+                direction == "right"
+                and enemy.row == self.row
+                and enemy.col > self.col
+                and enemy.col - self.col <= range_distance
+            ):
                 hit_enemies.append(enemy)
 
         # Apply damage
@@ -102,11 +154,18 @@ class Player(GameObject):
         return hit_enemies
 
     def attack_bow(self, direction, enemies, walls):
-        if self.bow_level == 0 or self.inventory.get("arrows", 0) <= 0:
+        if not self.has_bow or self.inventory.get("arrows", 0) <= 0:
             return None
 
+        if direction == "left":
+            self.facing_right = False
+        elif direction == "right":
+            self.facing_right = True
+
+        self.play_animation("player_bow", 400)
+
         self.inventory["arrows"] -= 1
-        damage = GameConfig.PLAYER_BASE_DAMAGE + self.bow_level * 3
+        damage = GameConfig.PLAYER_BASE_DAMAGE
         range_distance = GameConfig.BOW_RANGE
 
         # Find first enemy or wall in line of fire
@@ -122,16 +181,9 @@ class Player(GameObject):
             elif direction == "right":
                 check_col = self.col + distance
 
-            # Check walls first (they block arrows)
             for wall in walls:
                 if wall.row == check_row and wall.col == check_col:
                     return {"type": "wall", "position": (check_row, check_col)}
-
-            # Check enemies
-            for enemy in enemies:
-                if enemy.is_alive() and enemy.row == check_row and enemy.col == check_col:
-                    enemy.take_damage(damage)
-                    return {"type": "enemy", "enemy": enemy, "position": (check_row, check_col)}
 
         return None
 
@@ -142,35 +194,27 @@ class Player(GameObject):
             self.inventory["health"] += 1
         elif item.item_type == "arrow":
             self.inventory["arrows"] += item.value
-        elif item.item_type == "sword" and self.sword_level == 0:
-            self.sword_level = 1
-        elif item.item_type == "bow" and self.bow_level == 0:
-            self.bow_level = 1
+        elif item.item_type == "sword":
+            self.has_sword = True
+        elif item.item_type == "bow":
+            self.has_bow = True
 
     def use_item(self, item_type):
         if self.inventory.get(item_type, 0) > 0:
             self.inventory[item_type] -= 1
             if item_type == "health":
-                self.health = min(self.max_health, self.health + GameConfig.HEALTH_POTION_HEAL)
+                self.health = min(
+                    self.max_health, self.health + GameConfig.HEALTH_POTION_HEAL
+                )
                 return True
         return False
 
-    def upgrade_sword(self):
-        if self.sword_level < 3 and self.coins >= GameConfig.SWORD_UPGRADE_COST[self.sword_level]:
-            self.coins -= GameConfig.SWORD_UPGRADE_COST[self.sword_level]
-            self.sword_level += 1
-            return True
-        return False
-
-    def upgrade_bow(self):
-        if self.bow_level < 3 and self.coins >= GameConfig.BOW_UPGRADE_COST[self.bow_level]:
-            self.coins -= GameConfig.BOW_UPGRADE_COST[self.bow_level]
-            self.bow_level += 1
-            return True
-        return False
-
     def upgrade_health(self):
-        if self.max_health < 200 and self.coins >= GameConfig.HEALTH_UPGRADE_COST[0 if self.max_health == 100 else 1]:
+        if (
+            self.max_health < 200
+            and self.coins
+            >= GameConfig.HEALTH_UPGRADE_COST[0 if self.max_health == 100 else 1]
+        ):
             cost_index = 0 if self.max_health == 100 else 1
             self.coins -= GameConfig.HEALTH_UPGRADE_COST[cost_index]
             self.max_health += 50
@@ -182,21 +226,5 @@ class Player(GameObject):
         if self.dash_cooldown > 0:
             self.dash_cooldown -= 1
 
-    def draw(self, screen, x, y, cell_size):
-        center_x = x + cell_size // 2
-        center_y = y + cell_size // 2
-        radius = cell_size // 3
-
-        # Body
-        pygame.draw.circle(screen, GameConfig.COLORS['player'], (center_x, center_y), radius)
-
-        # Equipment indicators
-        if self.sword_level > 0:
-            pygame.draw.rect(screen, (200, 200, 200),
-                             (center_x - 15, center_y - 20, 5, 15))
-        if self.bow_level > 0:
-            pygame.draw.arc(screen, (139, 69, 19),
-                            (center_x + 5, center_y - 15, 20, 20), 0, 3.14, 3)
-
-        # Health bar
-        self.draw_health_bar(screen, x, y, cell_size, self.health, self.max_health)
+    def draw(self, screen):
+        super().draw(screen)
